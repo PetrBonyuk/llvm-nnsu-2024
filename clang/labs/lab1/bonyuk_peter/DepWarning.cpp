@@ -7,52 +7,52 @@ using namespace clang;
 
 class DeprecFuncVisitor : public RecursiveASTVisitor<DeprecFuncVisitor> {
 private:
-    ASTContext *astContext;
+  ASTContext *astContext;
 
 public:
-	explicit DeprecFuncVisitor(ASTContext *astContext) : astContext(astContext) {}
+  explicit DeprecFuncVisitor(ASTContext *astContext) : astContext(astContext) {}
 
-	bool FunctionDeclVisit(FunctionDecl *Funct) {
-		if (func->getNameInfo().getAsString().find("deprecated") !=
-			std::string::npos) {
-			DiagnosticsEngine &Diags = astContext->getDiagnostics();
-			size_t CustomDiagID =
-				Diags.getCustomDiagID(DiagnosticsEngine::Warning,
-					"The 'deprecated' is in the function name");
-			Diags.Report(Funct->getLocation(), CustomDiagID)
-				<< Funct->getNameInfo().getAsString();
-		}
-		return true;
-	}
+  bool FunctionDeclVisit(FunctionDecl *Funct) {
+    if (func->getNameInfo().getAsString().find("deprecated") !=
+      std::string::npos) {
+      DiagnosticsEngine &Diags = astContext->getDiagnostics();
+      size_t CustomDiagID =
+        Diags.getCustomDiagID(DiagnosticsEngine::Warning,
+          "The 'deprecated' is in the function name");
+        Diags.Report(Funct->getLocation(), CustomDiagID)
+        << Funct->getNameInfo().getAsString();
+    }
+    return true;
+  }
 };
 
 class DeprecFuncConsumer : public ASTConsumer {
 private:
-	CompilerInstance &Instance;
+  CompilerInstance &Instance;
 
 public:
-	explicit DeprecFuncConsumer(CompilerInstance &CI) : Instance(CI) {}
+  explicit DeprecFuncConsumer(CompilerInstance &CI) : Instance(CI) {}
 
-	void TranslationBlockHandle(ASTContext &astContext) override {
-		DeprecFuncVisitor Visitor(&Instance.getASTContext());
-		Visitor.TraverseDecl(astContext.getTranslationUnitDecl());
-	}
+  void HandleTranslationUnit(ASTContext &astContext) override {
+    DeprecFuncVisitor Visitor(&Instance.getASTContext());
+    Visitor.TraverseDecl(astContext.getTranslationUnitDecl());
+  }
 };
 
 
 class DeprecFuncPlugin : public PluginASTAction {
 protected:
-	std::unique_ptr<ASTConsumer>
-		CreateASTConsumer(CompilerInstance &Compiler,
-			llvm::StringRef InFile) override {
-		return std::make_unique<DeprecFuncConsumer>(Compiler);
-	}
+  std::unique_ptr<ASTConsumer>
+    CreateASTConsumer(CompilerInstance &Compiler,
+      llvm::StringRef InFile) override {
+    return std::make_unique<DeprecFuncConsumer>(Compiler);
+  }
 
-	bool ParseArgs(const CompilerInstance &Compiler,
-		const std::vector<std::string> &Args) override {
-		return true;
-	}
+  bool ParseArgs(const CompilerInstance &Compiler,
+    const std::vector<std::string> &Args) override {
+    return true;
+  }
 };
 
 static FrontendPluginRegistry::Add<DeprecFuncPlugin> X("deprecated-warning",
-	"deprecated warning");
+  "deprecated warning");
