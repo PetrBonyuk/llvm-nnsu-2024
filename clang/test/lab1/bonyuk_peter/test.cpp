@@ -16,4 +16,4 @@ void something();
 void deprecatend();
 
 // CHECK-NOT: warning: The 'deprecated' is in the function name
-void deprecateqwERe();
+void deprecate();
