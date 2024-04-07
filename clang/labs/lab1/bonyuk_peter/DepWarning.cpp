@@ -7,7 +7,7 @@ using namespace clang;
 
 class DeprecFuncVisitor : public RecursiveASTVisitor<DeprecFuncVisitor> {
 private:
-	ASTContext *astContext;
+    ASTContext *astContext;
 
 public:
 	explicit DeprecFuncVisitor(ASTContext *astContext) : astContext(astContext) {}
