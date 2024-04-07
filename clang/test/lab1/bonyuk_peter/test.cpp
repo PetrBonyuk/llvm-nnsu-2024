@@ -1,19 +1,19 @@
 // RUN: %clang_cc1 -load %llvmshlibdir/depWarningPluginBonyuk%pluginext -plugin deprecated-warning %s 2>&1 | FileCheck %s
 
-// CHECK: warning: The 'deprecated' is in the function name
+// CHECK: warning: Function contains 'deprecated' in its name
 void deprecated();
 
-// CHECK: warning: The 'deprecated' is in the function name
+// CHECK: warning: Function contains 'deprecated' in its name
 void deprecatedasad();
 
-// CHECK: warning: The 'deprecated' is in the function name
+// CHECK: warning: Function contains 'deprecated' in its name
 void deprecatedasSVDfd();
 
-// CHECK-NOT: warning: The 'deprecated' is in the function name
+// CHECK-NOT: warning: Function contains 'deprecated' in its name
 void something();
 
-// CHECK-NOT: warning: The 'deprecated' is in the function name
+// CHECK-NOT: warning: Function contains 'deprecated' in its name
 void deprecatend();
 
-// CHECK-NOT: warning: The 'deprecated' is in the function name
+// CHECK-NOT: warning: Function contains 'deprecated' in its name
 void deprecate();
