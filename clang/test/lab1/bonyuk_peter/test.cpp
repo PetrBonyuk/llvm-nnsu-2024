@@ -4,10 +4,10 @@
 void deprecated();
 
 // CHECK: warning: Function contains 'deprecated' in its name
-void deprecatedasad();
+void cfgdeprecatedasad();
 
 // CHECK: warning: Function contains 'deprecated' in its name
-void deprecatedasSVDfd();
+void yufdeprecatedasSVDfd();
 
 // CHECK-NOT: warning: Function contains 'deprecated' in its name
 void something();

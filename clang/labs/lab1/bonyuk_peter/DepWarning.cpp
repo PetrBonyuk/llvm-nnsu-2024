@@ -12,21 +12,21 @@ private:
 public:
   explicit DeprecFuncVisitor(ASTContext *Context) : Context(Context) {}
 
-  bool FunctionDeclVisit(FunctionDecl *Funct) {
+  bool VisitFunctionDecl(FunctionDecl *Funct) {
     if (Funct->getNameInfo().getAsString().find("deprecated") !=
-      std::string::npos) {
+        std::string::npos) {
       DiagnosticsEngine &Diags = Context->getDiagnostics();
       size_t CustomDiagID =
-        Diags.getCustomDiagID(DiagnosticsEngine::Warning,
-          "Function contains 'deprecated' in its name");
-        Diags.Report(Funct->getLocation(), CustomDiagID)
-        << Funct->getNameInfo().getAsString();
+          Diags.getCustomDiagID(DiagnosticsEngine::Warning,
+                                "Function contains 'deprecated' in its name");
+      Diags.Report(Funct->getLocation(), CustomDiagID)
+          << Funct->getNameInfo().getAsString();
     }
     return true;
   }
 };
 
-class DeprecFuncConsumer : public ASTConsumer {
+class DeprecFuncConsumer : public clang::ASTConsumer {
 private:
   CompilerInstance &Instance;
 
@@ -39,20 +39,19 @@ public:
   }
 };
 
-
 class DeprecFuncPlugin : public PluginASTAction {
 protected:
-  std::unique_ptr<ASTConsumer>
-    CreateASTConsumer(CompilerInstance &Compiler,
-      llvm::StringRef InFile) override {
+  std::unique_ptr<clang::ASTConsumer>
+  CreateASTConsumer(CompilerInstance &Compiler,
+                    llvm::StringRef InFile) override {
     return std::make_unique<DeprecFuncConsumer>(Compiler);
   }
 
   bool ParseArgs(const CompilerInstance &Compiler,
-    const std::vector<std::string> &Args) override {
+                 const std::vector<std::string> &Args) override {
     return true;
   }
 };
 
 static FrontendPluginRegistry::Add<DeprecFuncPlugin> X("deprecated-warning",
-  "deprecated warning");
+                                                       "deprecated warning");
