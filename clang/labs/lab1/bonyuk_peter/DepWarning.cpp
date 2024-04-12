@@ -7,18 +7,18 @@ using namespace clang;
 
 class DeprecFuncVisitor : public RecursiveASTVisitor<DeprecFuncVisitor> {
 private:
-  ASTContext *Context;
+  ASTContext *ast_Context;
 
 public:
-  explicit DeprecFuncVisitor(ASTContext *Context) : Context(Context) {}
+  explicit DeprecFuncVisitor(ASTContext *ast_Context) : ast_Context(ast_Context) {}
 
   bool VisitFunctionDecl(FunctionDecl *Funct) {
     if (Funct->getNameInfo().getAsString().find("deprecated") !=
         std::string::npos) {
-      DiagnosticsEngine &Diags = Context->getDiagnostics();
+      DiagnosticsEngine &Diags = ast_Context->getDiagnostics();
       size_t CustomDiagID =
           Diags.getCustomDiagID(DiagnosticsEngine::Warning,
-                                "Function contains 'deprecated' in its name");
+                                "The function name contains the word 'deprecated'");
       Diags.Report(Funct->getLocation(), CustomDiagID)
           << Funct->getNameInfo().getAsString();
     }
@@ -33,9 +33,9 @@ private:
 public:
   explicit DeprecFuncConsumer(CompilerInstance &CI) : Instance(CI) {}
 
-  void HandleTranslationUnit(ASTContext &Context) override {
+  void HandleTranslationUnit(ASTContext &ast_Context) override {
     DeprecFuncVisitor Visitor(&Instance.getASTContext());
-    Visitor.TraverseDecl(Context.getTranslationUnitDecl());
+    Visitor.TraverseDecl(ast_Context.getTranslationUnitDecl());
   }
 };
 
