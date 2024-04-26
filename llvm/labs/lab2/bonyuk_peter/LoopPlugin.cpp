@@ -23,7 +23,7 @@ struct LoopPlugin : public llvm::PassInfoMixin<LoopPlugin> {
       for (auto *const pre_header :
       llvm::children<llvm::Inverse<llvm::BasicBlock *>>(Header)) {
         if (Loop->contains(pre_header) &&
-          !isLoopCallPresent("loop_start", pre_header)) {
+          !LoopCallPresent("loop_start", pre_header)) {
           Builder.SetInsertPoint(pre_header->getTerminator());
           Builder.CreateCall(
               par_module->getOrInsertFunction("loop_start", function_type));
