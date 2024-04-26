@@ -21,7 +21,7 @@ struct LoopPlugin : public llvm::PassInfoMixin<LoopPlugin> {
       llvm::IRBuilder<> Builder(Loop->getHeader()->getContext());
       llvm::BasicBlock *Header = Loop->getHeader();
       for (auto *const pre_header :
-      llvm::children<llvm::Inverse<llvm::BasicBlock *>>(pre_header)) {
+      llvm::children<llvm::Inverse<llvm::BasicBlock *>>(Header)) {
         if (Loop->contains(pre_header) &&
           !isLoopCallPresent("loop_start", pre_header)) {
           Builder.SetInsertPoint(pre_header->getTerminator());
@@ -70,7 +70,7 @@ struct LoopPlugin : public llvm::PassInfoMixin<LoopPlugin> {
     for (llvm::BasicBlock *BBlock : llvm_blocks)
       if (BBlock == TargetBB)
         return false;
-      return true;
+    return true;
   }
 };
 
