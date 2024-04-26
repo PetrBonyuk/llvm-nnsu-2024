@@ -26,7 +26,7 @@ struct LoopPlugin : public llvm::PassInfoMixin<LoopPlugin> {
           !isLoopCallPresent("loop_start", pre_header)) {
           Builder.SetInsertPoint(pre_header->getTerminator());
           Builder.CreateCall(
-           ParentModule->getOrInsertFunction("loop_start", funcType));
+              par_module->getOrInsertFunction("loop_start", function_type));
         }
       }
 
@@ -37,7 +37,7 @@ struct LoopPlugin : public llvm::PassInfoMixin<LoopPlugin> {
           LastBlock(llvm_block, llvm_blocks)) {
           Builder.SetInsertPoint(llvm_block->getFirstNonPHI());
           Builder.CreateCall(
-            par_module->getOrInsertFunction("loop_end", funcType));
+              par_module->getOrInsertFunction("loop_end", function_type));
         }
       }
     }
