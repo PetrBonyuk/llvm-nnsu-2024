@@ -5,7 +5,7 @@
 
 struct LoopPlugin : public llvm::PassInfoMixin<LoopPlugin> {
   llvm::PreservedAnalyses 
-  run(llvm::Function &Func,llvm::FunctionAnalysisManager &Func_analys_manag) {
+  run(llvm::Function &Func, llvm::FunctionAnalysisManager &Func_analys_manag) {
     llvm::dbgs() << "Entering run\n";
 
     llvm::LLVMContext &llvmcont = Func.getContext();
@@ -22,7 +22,7 @@ struct LoopPlugin : public llvm::PassInfoMixin<LoopPlugin> {
       llvm::IRBuilder<> Builder(Loop->getHeader()->getContext());
       llvm::BasicBlock *Header = Loop->getHeader();
       for (auto *const pre_header :
-          llvm::children<llvm::Inverse<llvm::BasicBlock *>>(Header)) {
+           llvm::children<llvm::Inverse<llvm::BasicBlock *>>(Header)) {
         if (Loop->contains(pre_header) &&
             !LoopCallPresent("loop_start", pre_header)) {
           Builder.SetInsertPoint(pre_header->getTerminator());
@@ -76,7 +76,7 @@ struct LoopPlugin : public llvm::PassInfoMixin<LoopPlugin> {
 
 extern "C" LLVM_ATTRIBUTE_WEAK::llvm::PassPluginLibraryInfo
 llvmGetPassPluginInfo() {
-  return { LLVM_PLUGIN_API_VERSION, "LoopPlugin", LLVM_VERSION_STRING,
+  return {LLVM_PLUGIN_API_VERSION, "LoopPlugin", LLVM_VERSION_STRING,
           [](llvm::PassBuilder &PassBuild) {
             PassBuild.registerPipelineParsingCallback(
                 [](llvm::StringRef Name, llvm::FunctionPassManager &PassManag,
