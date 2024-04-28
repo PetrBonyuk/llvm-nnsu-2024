@@ -1,0 +1,13 @@
+if (NOT WIN32 AND NOT CYGWIN)
+  set(path ${CMAKE_CURRENT_SOURCE_DIR})
+  cmake_path(GET path PARENT_PATH PATH_TO_X86)
+
+  FILE(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
+  FOREACH(child ${children})
+    IF(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
+      add_subdirectory(${child})
+    ENDIF()
+  ENDFOREACH()
+
+  set(LLVM_TEST_DEPENDS ${LLVM_TEST_DEPENDS} PARENT_SCOPE)
+endif()
