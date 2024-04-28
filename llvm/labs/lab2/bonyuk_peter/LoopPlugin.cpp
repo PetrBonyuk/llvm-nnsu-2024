@@ -4,7 +4,7 @@
 #include "llvm/Support/Debug.h"
 
 struct LoopPlugin : public llvm::PassInfoMixin<LoopPlugin> {
-  llvm::PreservedAnalyses 
+  llvm::PreservedAnalyses
   run(llvm::Function &Func, llvm::FunctionAnalysisManager &Func_analys_manag) {
     llvm::dbgs() << "Entering run\n";
 
