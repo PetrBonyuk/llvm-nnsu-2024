@@ -1,0 +1,477 @@
+# RUN: llc -mtriple x86_64-unknown-linux-gnu --load=%llvmshlibdir/X86VolodinReplaceMulAdd%shlibext -run-pass=x86-volodin-replace-mul-add  %s -o - | FileCheck %s
+
+# main.cpp
+# 
+# __m128d simple_test(__m128d a, __m128d b, __m128d c, __m128d d) {
+# 	__m128d temp = a * b;
+# 	d = temp + c;
+# 	return d;
+# }
+# 
+# __m128d middle_test(__m128d a, __m128d b, __m128d c, __m128d d, __m128d e) {
+#     __m128d temp = a * b;
+# 	__m128d i = temp + c;
+#     __m128d j = temp + d;
+#     __m128d k = temp + e;
+#     return i * j * k;
+# }
+# 
+#  __m128d hard_test(__m128d a, __m128d b, __m128d c, __m128d d) {
+# 	__m128d t = a * b;
+# 	a = a + b;
+# 	b = b * b + a;
+# 	d = t + c;
+# 	return d / b;
+# }
+# 
+# __m128d test_without_muladd(__m128d a, __m128d b, __m128d c, __m128d d, __m128d e) {
+# 	d = a * b;
+# 	e = a + c;
+# 	return d - e;
+# }
+#
+# __m128d another_test(__m128d a, __m128d b, __m128d c, __m128d d) {
+# 	__m128d t = a * b;
+# 	__m128d t2 = c * d;
+# 	t2 = t + t2;
+# 	t = t + c;
+# 	return t * t2;
+# }
+
+--- |
+  ; ModuleID = 'main.ll'
+  source_filename = "main.cpp"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target triple = "x86_64-unknown-linux-gnu"
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?simple_test@@YA?AU__m128d@@U1@000@Z"(<2 x double> noundef %0, <2 x double> noundef %1, <2 x double> noundef %2, <2 x double> noundef %3) local_unnamed_addr #0 {
+    %5 = fmul <2 x double> %0, %1
+    %6 = fadd <2 x double> %5, %2
+    ret <2 x double> %6
+  }
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?middle_test@@YA?AU__m128d@@U1@0000@Z"(<2 x double> noundef %0, <2 x double> noundef %1, <2 x double> noundef %2, <2 x double> noundef %3, <2 x double> noundef %4) local_unnamed_addr #0 {
+    %6 = fmul <2 x double> %0, %1
+    %7 = fadd <2 x double> %6, %2
+    %8 = fadd <2 x double> %6, %3
+    %9 = fadd <2 x double> %6, %4
+    %10 = fmul <2 x double> %7, %8
+    %11 = fmul <2 x double> %10, %9
+    ret <2 x double> %11
+  }
+  
+  ; Function Attrs: mustprogress nofree nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?hard_test@@YA?AU__m128d@@U1@000@Z"(<2 x double> noundef %0, <2 x double> noundef %1, <2 x double> noundef %2, <2 x double> noundef %3) local_unnamed_addr #1 {
+    %5 = fmul <2 x double> %0, %1
+    %6 = fadd <2 x double> %0, %1
+    %7 = tail call <2 x double> @llvm.fmuladd.v2f64(<2 x double> %1, <2 x double> %1, <2 x double> %6)
+    %8 = fadd <2 x double> %5, %2
+    %9 = fdiv <2 x double> %8, %7
+    ret <2 x double> %9
+  }
+  
+  ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+  declare <2 x double> @llvm.fmuladd.v2f64(<2 x double>, <2 x double>, <2 x double>) #2
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?test_without_muladd@@YA?AU__m128d@@U1@0000@Z"(<2 x double> noundef %0, <2 x double> noundef %1, <2 x double> noundef %2, <2 x double> noundef %3, <2 x double> noundef %4) local_unnamed_addr #0 {
+    %6 = fmul <2 x double> %0, %1
+    %7 = fadd <2 x double> %0, %2
+    %8 = fsub <2 x double> %6, %7
+    ret <2 x double> %8
+  }
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?another_test@@YA?AU__m128d@@U1@000@Z"(<2 x double> noundef %0, <2 x double> noundef %1, <2 x double> noundef %2, <2 x double> noundef %3) local_unnamed_addr #0 {
+    %5 = fmul <2 x double> %0, %1
+    %6 = fmul <2 x double> %2, %3
+    %7 = fadd <2 x double> %5, %6
+    %8 = fadd <2 x double> %5, %2
+    %9 = fmul <2 x double> %8, %7
+    ret <2 x double> %9
+  }
+  
+  attributes #0 = { mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable "min-legal-vector-width"="128" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #1 = { mustprogress nofree nosync nounwind willreturn memory(none) uwtable "min-legal-vector-width"="128" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #2 = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
+  
+  !llvm.module.flags = !{!0, !1, !2, !3}
+  !llvm.ident = !{!4}
+  
+  !0 = !{i32 1, !"wchar_size", i32 2}
+  !1 = !{i32 8, !"PIC Level", i32 2}
+  !2 = !{i32 7, !"uwtable", i32 2}
+  !3 = !{i32 1, !"MaxTLSAlign", i32 65536}
+  !4 = !{!"clang version 17.0.6 (https://github.com/evldn/llvm-nnsu-2024.git 0be9f6536dacc3877d2a33309608401614a1d7ee)"}
+
+...
+---
+name:            '?simple_test@@YA?AU__m128d@@U1@000@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: true
+registers:       []
+liveins:
+  - { reg: '$xmm0', virtual-reg: '' }
+  - { reg: '$xmm1', virtual-reg: '' }
+  - { reg: '$xmm2', virtual-reg: '' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 0
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0 (%ir-block.4):
+    liveins: $xmm0, $xmm1, $xmm2
+  
+    renamable $xmm0 = nofpexcept MULPDrr killed renamable $xmm0, killed renamable $xmm1, implicit $mxcsr
+    renamable $xmm0 = nofpexcept ADDPDrr killed renamable $xmm0, killed renamable $xmm2, implicit $mxcsr
+    RET64 $xmm0
+    ; CHECK: liveins: $xmm0, $xmm1, $xmm2
+    ; CHECK-NOT: renamable $xmm0 = nofpexcept MULPDrr killed renamable $xmm0, killed renamable $xmm1, implicit $mxcsr
+    ; CHECK-NOT: renamable $xmm0 = nofpexcept ADDPDrr killed renamable $xmm0, killed renamable $xmm2, implicit $mxcsr
+    ; CHECK: $xmm0 = VFMADD213PDr $xmm0, $xmm1, $xmm2, implicit $mxcsr
+    ; CHECK-NEXT: RET64 $xmm0
+
+...
+---
+name:            '?middle_test@@YA?AU__m128d@@U1@0000@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: true
+registers:       []
+liveins:
+  - { reg: '$xmm0', virtual-reg: '' }
+  - { reg: '$xmm1', virtual-reg: '' }
+  - { reg: '$xmm2', virtual-reg: '' }
+  - { reg: '$xmm3', virtual-reg: '' }
+  - { reg: '$xmm4', virtual-reg: '' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 0
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0 (%ir-block.5):
+    liveins: $xmm0, $xmm1, $xmm2, $xmm3, $xmm4
+  
+    renamable $xmm0 = nofpexcept MULPDrr killed renamable $xmm0, killed renamable $xmm1, implicit $mxcsr
+    renamable $xmm2 = nofpexcept ADDPDrr killed renamable $xmm2, renamable $xmm0, implicit $mxcsr
+    renamable $xmm3 = nofpexcept ADDPDrr killed renamable $xmm3, renamable $xmm0, implicit $mxcsr
+    renamable $xmm3 = nofpexcept MULPDrr killed renamable $xmm3, killed renamable $xmm2, implicit $mxcsr
+    renamable $xmm0 = nofpexcept ADDPDrr killed renamable $xmm0, killed renamable $xmm4, implicit $mxcsr
+    renamable $xmm0 = nofpexcept MULPDrr killed renamable $xmm0, killed renamable $xmm3, implicit $mxcsr
+    RET64 $xmm0
+
+    ; CHECK: liveins: $xmm0, $xmm1, $xmm2, $xmm3, $xmm4
+    ; CHECK-NOT: renamable $xmm0 = nofpexcept MULPDrr killed renamable $xmm0, killed renamable $xmm1, implicit $mxcsr
+    ; CHECK-NOT: renamable $xmm2 = nofpexcept ADDPDrr killed renamable $xmm2, renamable $xmm0, implicit $mxcsr
+    ; CHECK-NOT: renamable $xmm3 = nofpexcept ADDPDrr killed renamable $xmm3, renamable $xmm0, implicit $mxcsr
+    ; CHECK-NOT: renamable $xmm0 = nofpexcept ADDPDrr killed renamable $xmm0, killed renamable $xmm4, implicit $mxcsr
+    ; CHECK: $xmm2 = VFMADD213PDr $xmm0, $xmm1, $xmm2, implicit $mxcsr
+    ; CHECK-NEXT: $xmm3 = VFMADD213PDr $xmm0, $xmm1, $xmm3, implicit $mxcsr
+    ; CHECK-NEXT: $xmm0 = VFMADD213PDr $xmm0, $xmm1, $xmm4, implicit $mxcsr
+    ; CHECK-NEXT: renamable $xmm3 = nofpexcept MULPDrr killed renamable $xmm3, killed renamable $xmm2, implicit $mxcsr
+    ; CHECK-NEXT: renamable $xmm0 = nofpexcept MULPDrr killed renamable $xmm0, killed renamable $xmm3, implicit $mxcsr
+    ; CHECK-NEXT: RET64 $xmm0
+...
+---
+name:            '?hard_test@@YA?AU__m128d@@U1@000@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: true
+registers:       []
+liveins:
+  - { reg: '$xmm0', virtual-reg: '' }
+  - { reg: '$xmm1', virtual-reg: '' }
+  - { reg: '$xmm2', virtual-reg: '' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 0
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0 (%ir-block.4):
+    liveins: $xmm0, $xmm1, $xmm2
+  
+    $xmm3 = MOVAPDrr $xmm0
+    renamable $xmm3 = nofpexcept MULPDrr killed renamable $xmm3, renamable $xmm1, implicit $mxcsr
+    renamable $xmm0 = nofpexcept ADDPDrr killed renamable $xmm0, renamable $xmm1, implicit $mxcsr
+    renamable $xmm1 = nofpexcept MULPDrr killed renamable $xmm1, renamable $xmm1, implicit $mxcsr
+    renamable $xmm1 = nofpexcept ADDPDrr killed renamable $xmm1, killed renamable $xmm0, implicit $mxcsr
+    renamable $xmm3 = nofpexcept ADDPDrr killed renamable $xmm3, killed renamable $xmm2, implicit $mxcsr
+    renamable $xmm3 = nofpexcept DIVPDrr killed renamable $xmm3, killed renamable $xmm1, implicit $mxcsr
+    $xmm0 = MOVAPDrr killed $xmm3
+    RET64 $xmm0
+
+    ; CHECK: liveins: $xmm0, $xmm1, $xmm2
+    ; CHECK: $xmm3 = VFMADD213PDr $xmm3, $xmm1, $xmm2, implicit $mxcsr
+    
+    ; CHECK-NOT: renamable $xmm3 = nofpexcept MULPDrr killed renamable $xmm3, renamable $xmm1, implicit $mxcsr
+    ; CHECK: renamable $xmm0 = nofpexcept ADDPDrr killed renamable $xmm0, renamable $xmm1, implicit $mxcsr
+    ; CHECK-NOT: renamable $xmm1 = nofpexcept MULPDrr killed renamable $xmm1, renamable $xmm1, implicit $mxcsr
+    ; CHECK-NOT: renamable $xmm1 = nofpexcept ADDPDrr killed renamable $xmm1, killed renamable $xmm0, implicit $mxcsr
+    ; CHECK-NOT: renamable $xmm3 = nofpexcept ADDPDrr killed renamable $xmm3, killed renamable $xmm2, implicit $mxcsr
+    
+    ; CHECK: $xmm1 = VFMADD213PDr $xmm1, $xmm1, $xmm0, implicit $mxcsr
+    ; CHECK: renamable $xmm3 = nofpexcept DIVPDrr killed renamable $xmm3, killed renamable $xmm1, implicit $mxcsr
+    ; CHECK-NEXT: $xmm0 = MOVAPDrr killed $xmm3
+    ; CHECK-NEXT: RET64 $xmm0
+
+...
+---
+name:            '?test_without_muladd@@YA?AU__m128d@@U1@0000@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: true
+registers:       []
+liveins:
+  - { reg: '$xmm0', virtual-reg: '' }
+  - { reg: '$xmm1', virtual-reg: '' }
+  - { reg: '$xmm2', virtual-reg: '' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 0
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0 (%ir-block.5):
+    liveins: $xmm0, $xmm1, $xmm2
+  
+    renamable $xmm1 = nofpexcept MULPDrr killed renamable $xmm1, renamable $xmm0, implicit $mxcsr
+    renamable $xmm2 = nofpexcept ADDPDrr killed renamable $xmm2, killed renamable $xmm0, implicit $mxcsr
+    renamable $xmm1 = nofpexcept SUBPDrr killed renamable $xmm1, killed renamable $xmm2, implicit $mxcsr
+    $xmm0 = MOVAPDrr killed $xmm1
+    RET64 $xmm0
+
+    ; CHECK: liveins: $xmm0, $xmm1, $xmm2
+    
+    ; CHECK-NOT: VFMADD213PDr
+    ; CHECK: renamable $xmm1 = nofpexcept MULPDrr killed renamable $xmm1, renamable $xmm0, implicit $mxcsr
+    ; CHECK-NEXT: renamable $xmm2 = nofpexcept ADDPDrr killed renamable $xmm2, killed renamable $xmm0, implicit $mxcsr
+    ; CHECK-NEXT: renamable $xmm1 = nofpexcept SUBPDrr killed renamable $xmm1, killed renamable $xmm2, implicit $mxcsr
+    ; CHECK-NEXT: $xmm0 = MOVAPDrr killed $xmm1
+    ; CHECK-NEXT: RET64 $xmm0
+...
+---
+name:            '?another_test@@YA?AU__m128d@@U1@000@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: true
+registers:       []
+liveins:
+  - { reg: '$xmm0', virtual-reg: '' }
+  - { reg: '$xmm1', virtual-reg: '' }
+  - { reg: '$xmm2', virtual-reg: '' }
+  - { reg: '$xmm3', virtual-reg: '' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 0
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0 (%ir-block.4):
+    liveins: $xmm0, $xmm1, $xmm2, $xmm3
+  
+    renamable $xmm0 = nofpexcept MULPDrr killed renamable $xmm0, killed renamable $xmm1, implicit $mxcsr
+    renamable $xmm3 = nofpexcept MULPDrr killed renamable $xmm3, renamable $xmm2, implicit $mxcsr
+    renamable $xmm3 = nofpexcept ADDPDrr killed renamable $xmm3, renamable $xmm0, implicit $mxcsr
+    renamable $xmm0 = nofpexcept ADDPDrr killed renamable $xmm0, killed renamable $xmm2, implicit $mxcsr
+    renamable $xmm0 = nofpexcept MULPDrr killed renamable $xmm0, killed renamable $xmm3, implicit $mxcsr
+    RET64 $xmm0
+
+    ; CHECK: liveins: $xmm0, $xmm1, $xmm2, $xmm3
+    ; CHECK: renamable $xmm0 = nofpexcept MULPDrr killed renamable $xmm0, killed renamable $xmm1, implicit $mxcsr
+    ; CHECK-NOT: renamable $xmm3 = nofpexcept MULPDrr killed renamable $xmm3, renamable $xmm2, implicit $mxcsr
+    ; CHECK-NOT: renamable $xmm3 = nofpexcept ADDPDrr killed renamable $xmm3, renamable $xmm0, implicit $mxcsr
+    ; CHECK: $xmm3 = VFMADD213PDr $xmm3, $xmm2, $xmm0, implicit $mxcsr
+    ; CHECK-NEXT: renamable $xmm0 = nofpexcept ADDPDrr killed renamable $xmm0, killed renamable $xmm2, implicit $mxcsr
+    ; CHECK-NEXT: renamable $xmm0 = nofpexcept MULPDrr killed renamable $xmm0, killed renamable $xmm3, implicit $mxcsr
+    ; CHECK-NEXT: RET64 $xmm0

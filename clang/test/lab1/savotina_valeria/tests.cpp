@@ -9,9 +9,11 @@
 
 namespace {
 // CHECK: FunctionDecl {{0[xX][0-9a-fA-F]+ <.+tests\.cpp:([0-9]+:[0-9]|[0-9]+), (line|col):([0-9]+:[0-9]|[0-9]+)> (line|col):([0-9]+:[0-9]|[0-9]+) testSquare 'int \(int\)'}}
+// CHECK: `-AlwaysInlineAttr {{.* always_inline}}
 int testSquare(int value) { return value * value; }
 
 // CHECK: FunctionDecl {{0[xX][0-9a-fA-F]+ <.+tests\.cpp:([0-9]+:[0-9]|[0-9]+), (line|col):([0-9]+:[0-9]|[0-9]+)> (line|col):([0-9]+:[0-9]|[0-9]+) testDiff 'int \(int, int\)'}}
+// CHECK: `-AlwaysInlineAttr {{.* always_inline}}
 int testDiff(int valueOne, int valueTwo) {
   {} {} {{} {}} {} {{{}} {} {}} {} {
     { return valueOne - valueTwo; }
@@ -19,6 +21,7 @@ int testDiff(int valueOne, int valueTwo) {
 }
 
 // CHECK: FunctionDecl {{0[xX][0-9a-fA-F]+ <.+tests\.cpp:([0-9]+:[0-9]|[0-9]+), (line|col):([0-9]+:[0-9]|[0-9]+)> (line|col):([0-9]+:[0-9]|[0-9]+) testEmptyFunc 'void \(\)'}}
+// CHECK: `-AlwaysInlineAttr {{.* always_inline}}
 void testEmptyFunc() {
   {} {{}} {{} {} {{{{}}}}} {}
 }

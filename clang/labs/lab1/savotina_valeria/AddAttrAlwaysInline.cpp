@@ -46,13 +46,6 @@ private:
     return false;
   }
 
-  void outStatusAttrAlwaysInline(clang::FunctionDecl *func) {
-    llvm::outs() << "function: " << func->getNameAsString() << '\n';
-    llvm::outs() << "attr status (always_inline): "
-                 << (func->hasAttr<clang::AlwaysInlineAttr>() ? "true\n"
-                                                              : "false\n");
-  }
-
 private:
   clang::ASTContext *context;
 };
@@ -62,8 +55,11 @@ public:
   explicit AddAttrAlwaysInlineConsumer(clang::ASTContext *сontext)
       : visitor(сontext) {}
 
-  void HandleTranslationUnit(clang::ASTContext &context) override {
-    visitor.TraverseDecl(context.getTranslationUnitDecl());
+  bool HandleTopLevelDecl(clang::DeclGroupRef groupDecl) override {
+    for (clang::Decl *Decl : groupDecl) {
+      visitor.TraverseDecl(Decl);
+    }
+    return true;
   }
 
 private:

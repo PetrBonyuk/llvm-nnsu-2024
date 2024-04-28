@@ -37,8 +37,13 @@ public:
 
 class ClassPrinterPluginAction : public clang::PluginASTAction {
 public:
+  bool helpFlag = false;
+
   std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &ci, llvm::StringRef) override {
+    if (helpFlag) {
+      return nullptr;
+    }
     return std::make_unique<ClassPrinterASTConsumer>();
   }
 
@@ -49,7 +54,7 @@ public:
         llvm::outs() << "This plugin traverses the Abstract Syntax Tree (AST) "
                         "of a codebase and prints the name and fields of each "
                         "class it encounters\n";
-        return false;
+        helpFlag = true;
       }
     }
     return true;
