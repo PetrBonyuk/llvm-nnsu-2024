@@ -1,0 +1,691 @@
+# RUN: llc -mtriple x86_64-unknown-linux-gnu --load=%llvmshlibdir/X86KostinPass%shlibext -run-pass=x86-kostin-pass  %s -o - | FileCheck %s
+
+# source.cpp
+
+# __m128d muladd_test1(__m128d a, __m128d b, __m128d c) { return a * b + c; }
+
+# __m128d muladd_test2(__m128d a, __m128d b, __m128d c) {
+#   __m128d tmp = a * b;
+#   tmp = tmp + c;
+#   return tmp;
+# }
+
+# __m128d muladd_test3(__m128d a, __m128d b, __m128d c) {
+#   __m128d tmp = a * c + b;
+#   return tmp * c + b;
+# }
+
+# __m128d muladd_test4(__m128d a, __m128d b, __m128d c) {
+#   __m128d tmp = a * c;
+#   tmp = tmp / b;
+#   return tmp + b;
+# }
+
+# __m128d muladd_test5(__m128d a, __m128d b, __m128d c) {
+#   __m128d tmp = a * b;
+#   __m128d tmp2 = b + a - c;
+#   return tmp + c + tmp2;
+# }
+
+# __m128d muladd_test6(__m128d a, __m128d b, __m128d c) {
+#   __m128d tmp = a * b;
+#   __m128d tmp2 = tmp + c;
+#   return tmp * c;
+# }
+
+# __m128d swap_addpd(__m128d a, __m128d b, __m128d c) {
+#   __m128d tmp = c * b;
+#   __m128d tmp2 = c / b;
+#   __m128d tmp3 = tmp2 + tmp;
+#   return tmp3 - 2;
+# }
+
+
+--- |
+  ; ModuleID = 'source.ll'
+  source_filename = "source.cpp"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target triple = "x86_64-unknown-linux-gnu"
+  
+  ; Function Attrs: mustprogress nofree nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?muladd_test1@@YA?AU__m128d@@U1@00@Z"(<2 x double> noundef %a, <2 x double> noundef %b, <2 x double> noundef %c) local_unnamed_addr #0 {
+  entry:
+    %0 = tail call <2 x double> @llvm.fmuladd.v2f64(<2 x double> %a, <2 x double> %b, <2 x double> %c)
+    ret <2 x double> %0
+  }
+  
+  ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+  declare <2 x double> @llvm.fmuladd.v2f64(<2 x double>, <2 x double>, <2 x double>) #1
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?muladd_test2@@YA?AU__m128d@@U1@00@Z"(<2 x double> noundef %a, <2 x double> noundef %b, <2 x double> noundef %c) local_unnamed_addr #2 {
+  entry:
+    %mul = fmul <2 x double> %a, %b
+    %add = fadd <2 x double> %mul, %c
+    ret <2 x double> %add
+  }
+  
+  ; Function Attrs: mustprogress nofree nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?muladd_test3@@YA?AU__m128d@@U1@00@Z"(<2 x double> noundef %a, <2 x double> noundef %b, <2 x double> noundef %c) local_unnamed_addr #0 {
+  entry:
+    %0 = tail call <2 x double> @llvm.fmuladd.v2f64(<2 x double> %a, <2 x double> %c, <2 x double> %b)
+    %1 = tail call <2 x double> @llvm.fmuladd.v2f64(<2 x double> %0, <2 x double> %c, <2 x double> %b)
+    ret <2 x double> %1
+  }
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?muladd_test4@@YA?AU__m128d@@U1@00@Z"(<2 x double> noundef %a, <2 x double> noundef %b, <2 x double> noundef %c) local_unnamed_addr #2 {
+  entry:
+    %mul = fmul <2 x double> %a, %c
+    %div = fdiv <2 x double> %mul, %b
+    %add = fadd <2 x double> %div, %b
+    ret <2 x double> %add
+  }
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?muladd_test5@@YA?AU__m128d@@U1@00@Z"(<2 x double> noundef %a, <2 x double> noundef %b, <2 x double> noundef %c) local_unnamed_addr #2 {
+  entry:
+    %mul = fmul <2 x double> %a, %b
+    %add = fadd <2 x double> %a, %b
+    %sub = fsub <2 x double> %add, %c
+    %add1 = fadd <2 x double> %mul, %c
+    %add2 = fadd <2 x double> %add1, %sub
+    ret <2 x double> %add2
+  }
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?muladd_test6@@YA?AU__m128d@@U1@00@Z"(<2 x double> noundef %a, <2 x double> noundef %b, <2 x double> noundef %c) local_unnamed_addr #2 {
+  entry:
+    %mul = fmul <2 x double> %a, %b
+    %mul1 = fmul <2 x double> %mul, %c
+    ret <2 x double> %mul1
+  }
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local noundef <2 x double> @"?swap_addpd@@YA?AU__m128d@@U1@00@Z"(<2 x double> noundef %a, <2 x double> noundef %b, <2 x double> noundef %c) local_unnamed_addr #2 {
+  entry:
+    %mul = fmul <2 x double> %b, %c
+    %div = fdiv <2 x double> %c, %b
+    %add = fadd <2 x double> %div, %mul
+    %sub = fadd <2 x double> %add, <double -2.000000e+00, double -2.000000e+00>
+    ret <2 x double> %sub
+  }
+  
+  attributes #0 = { mustprogress nofree nosync nounwind willreturn memory(none) uwtable "min-legal-vector-width"="128" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #1 = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
+  attributes #2 = { mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable "min-legal-vector-width"="128" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  
+  !llvm.module.flags = !{!0, !1, !2, !3}
+  !llvm.ident = !{!4}
+  
+  !0 = !{i32 1, !"wchar_size", i32 2}
+  !1 = !{i32 8, !"PIC Level", i32 2}
+  !2 = !{i32 7, !"uwtable", i32 2}
+  !3 = !{i32 1, !"MaxTLSAlign", i32 65536}
+  !4 = !{!"clang version 17.0.6 (https://github.com/aartyomm/llvm-nnsu-2024.git 594f153f17d859ae32dd7e5401bce1900160c313)"}
+
+...
+---
+name:            '?muladd_test1@@YA?AU__m128d@@U1@00@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: vr128, preferred-register: '' }
+  - { id: 1, class: vr128, preferred-register: '' }
+  - { id: 2, class: vr128, preferred-register: '' }
+  - { id: 3, class: vr128, preferred-register: '' }
+  - { id: 4, class: vr128, preferred-register: '' }
+liveins:
+  - { reg: '$xmm0', virtual-reg: '%0' }
+  - { reg: '$xmm1', virtual-reg: '%1' }
+  - { reg: '$xmm2', virtual-reg: '%2' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.entry:
+    liveins: $xmm0, $xmm1, $xmm2
+  
+    %2:vr128 = COPY $xmm2
+    %1:vr128 = COPY $xmm1
+    %0:vr128 = COPY $xmm0
+    %3:vr128 = nofpexcept MULPDrr %0, %1, implicit $mxcsr
+    %4:vr128 = nofpexcept ADDPDrr %3, %2, implicit $mxcsr
+    $xmm0 = COPY %4
+    RET 0, $xmm0
+
+    ; CHECK: %0:vr128 = COPY $xmm0
+    ; CHECK-NOT: %3:vr128 = nofpexcept MULPDrr %0, %1, implicit $mxcsr
+    ; CHECK-NOT: %4:vr128 = nofpexcept ADDPDrr %3, %2, implicit $mxcsr
+    ; CHECK: %4:vr128 = VFMADD213PDZ128r %0, %1, %2, implicit $mxcsr
+    ; CHECK-NOT: %3:vr128 = nofpexcept MULPDrr %0, %1, implicit $mxcsr
+    ; CHECK-NOT: %4:vr128 = nofpexcept ADDPDrr %3, %2, implicit $mxcsr
+    ; CHECK-NEXT: $xmm0 = COPY %4
+
+...
+---
+name:            '?muladd_test2@@YA?AU__m128d@@U1@00@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: vr128, preferred-register: '' }
+  - { id: 1, class: vr128, preferred-register: '' }
+  - { id: 2, class: vr128, preferred-register: '' }
+  - { id: 3, class: vr128, preferred-register: '' }
+  - { id: 4, class: vr128, preferred-register: '' }
+liveins:
+  - { reg: '$xmm0', virtual-reg: '%0' }
+  - { reg: '$xmm1', virtual-reg: '%1' }
+  - { reg: '$xmm2', virtual-reg: '%2' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.entry:
+    liveins: $xmm0, $xmm1, $xmm2
+  
+    %2:vr128 = COPY $xmm2
+    %1:vr128 = COPY $xmm1
+    %0:vr128 = COPY $xmm0
+    %3:vr128 = nofpexcept MULPDrr %0, %1, implicit $mxcsr
+    %4:vr128 = nofpexcept ADDPDrr %3, %2, implicit $mxcsr
+    $xmm0 = COPY %4
+    RET 0, $xmm0
+
+    ; CHECK: %0:vr128 = COPY $xmm0
+    ; CHECK-NOT: %3:vr128 = nofpexcept MULPDrr %0, %1, implicit $mxcsr
+    ; CHECK-NOT: %4:vr128 = nofpexcept ADDPDrr %3, %2, implicit $mxcsr
+    ; CHECK: %4:vr128 = VFMADD213PDZ128r %0, %1, %2, implicit $mxcsr
+    ; CHECK-NOT: %3:vr128 = nofpexcept MULPDrr %0, %1, implicit $mxcsr
+    ; CHECK-NOT: %4:vr128 = nofpexcept ADDPDrr %3, %2, implicit $mxcsr
+    ; CHECK-NEXT: $xmm0 = COPY %4
+
+...
+---
+name:            '?muladd_test3@@YA?AU__m128d@@U1@00@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: vr128, preferred-register: '' }
+  - { id: 1, class: vr128, preferred-register: '' }
+  - { id: 2, class: vr128, preferred-register: '' }
+  - { id: 3, class: vr128, preferred-register: '' }
+  - { id: 4, class: vr128, preferred-register: '' }
+  - { id: 5, class: vr128, preferred-register: '' }
+  - { id: 6, class: vr128, preferred-register: '' }
+liveins:
+  - { reg: '$xmm0', virtual-reg: '%0' }
+  - { reg: '$xmm1', virtual-reg: '%1' }
+  - { reg: '$xmm2', virtual-reg: '%2' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.entry:
+    liveins: $xmm0, $xmm1, $xmm2
+  
+    %2:vr128 = COPY $xmm2
+    %1:vr128 = COPY $xmm1
+    %0:vr128 = COPY $xmm0
+    %3:vr128 = nofpexcept MULPDrr %0, %2, implicit $mxcsr
+    %4:vr128 = nofpexcept ADDPDrr %3, %1, implicit $mxcsr
+    %5:vr128 = nofpexcept MULPDrr %4, %2, implicit $mxcsr
+    %6:vr128 = nofpexcept ADDPDrr %5, %1, implicit $mxcsr
+    $xmm0 = COPY %6
+    RET 0, $xmm0
+
+    ; CHECK: %0:vr128 = COPY $xmm0
+
+    ; CHECK-NOT: %3:vr128 = nofpexcept MULPDrr %0, %2, implicit $mxcsr
+    ; CHECK-NOT: %4:vr128 = nofpexcept ADDPDrr %3, %1, implicit $mxcsr
+    ; CHECK: %4:vr128 = VFMADD213PDZ128r %0, %2, %1, implicit $mxcsr
+    ; CHECK-NOT: %3:vr128 = nofpexcept MULPDrr %0, %2, implicit $mxcsr
+    ; CHECK-NOT: %4:vr128 = nofpexcept ADDPDrr %3, %1, implicit $mxcsr
+
+    ; CHECK-NOT: %5:vr128 = nofpexcept MULPDrr %4, %2, implicit $mxcsr
+    ; CHECK-NOT: %6:vr128 = nofpexcept ADDPDrr %5, %1, implicit $mxcsr
+    ; CHECK: %6:vr128 = VFMADD213PDZ128r %4, %2, %1, implicit $mxcsr
+    ; CHECK-NOT: %5:vr128 = nofpexcept MULPDrr %4, %2, implicit $mxcsr
+    ; CHECK-NOT: %6:vr128 = nofpexcept ADDPDrr %5, %1, implicit $mxcsr
+
+    ; CHECK-NEXT: $xmm0 = COPY %6
+
+...
+---
+name:            '?muladd_test4@@YA?AU__m128d@@U1@00@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: vr128, preferred-register: '' }
+  - { id: 1, class: vr128, preferred-register: '' }
+  - { id: 2, class: vr128, preferred-register: '' }
+  - { id: 3, class: vr128, preferred-register: '' }
+  - { id: 4, class: vr128, preferred-register: '' }
+  - { id: 5, class: vr128, preferred-register: '' }
+liveins:
+  - { reg: '$xmm0', virtual-reg: '%0' }
+  - { reg: '$xmm1', virtual-reg: '%1' }
+  - { reg: '$xmm2', virtual-reg: '%2' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.entry:
+    liveins: $xmm0, $xmm1, $xmm2
+  
+    %2:vr128 = COPY $xmm2
+    %1:vr128 = COPY $xmm1
+    %0:vr128 = COPY $xmm0
+    %3:vr128 = nofpexcept MULPDrr %0, %2, implicit $mxcsr
+    %4:vr128 = nofpexcept DIVPDrr %3, %1, implicit $mxcsr
+    %5:vr128 = nofpexcept ADDPDrr %4, %1, implicit $mxcsr
+    $xmm0 = COPY %5
+    RET 0, $xmm0
+
+    ; CHECK: %0:vr128 = COPY $xmm0
+    ; CHECK-NEXT: %3:vr128 = nofpexcept MULPDrr %0, %2, implicit $mxcsr
+    ; CHECK-NEXT: %4:vr128 = nofpexcept DIVPDrr %3, %1, implicit $mxcsr
+    ; CHECK-NEXT: %5:vr128 = nofpexcept ADDPDrr %4, %1, implicit $mxcsr
+    ; CHECK-NEXT: $xmm0 = COPY %5
+
+...
+---
+name:            '?muladd_test5@@YA?AU__m128d@@U1@00@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: vr128, preferred-register: '' }
+  - { id: 1, class: vr128, preferred-register: '' }
+  - { id: 2, class: vr128, preferred-register: '' }
+  - { id: 3, class: vr128, preferred-register: '' }
+  - { id: 4, class: vr128, preferred-register: '' }
+  - { id: 5, class: vr128, preferred-register: '' }
+  - { id: 6, class: vr128, preferred-register: '' }
+  - { id: 7, class: vr128, preferred-register: '' }
+liveins:
+  - { reg: '$xmm0', virtual-reg: '%0' }
+  - { reg: '$xmm1', virtual-reg: '%1' }
+  - { reg: '$xmm2', virtual-reg: '%2' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.entry:
+    liveins: $xmm0, $xmm1, $xmm2
+  
+    %2:vr128 = COPY $xmm2
+    %1:vr128 = COPY $xmm1
+    %0:vr128 = COPY $xmm0
+    %3:vr128 = nofpexcept MULPDrr %0, %1, implicit $mxcsr
+    %4:vr128 = nofpexcept ADDPDrr %0, %1, implicit $mxcsr
+    %5:vr128 = nofpexcept SUBPDrr %4, %2, implicit $mxcsr
+    %6:vr128 = nofpexcept ADDPDrr %3, %2, implicit $mxcsr
+    %7:vr128 = nofpexcept ADDPDrr %6, killed %5, implicit $mxcsr
+    $xmm0 = COPY %7
+    RET 0, $xmm0
+
+    ; CHECK: %0:vr128 = COPY $xmm0
+    ; CHECK-NEXT: %6:vr128 = VFMADD213PDZ128r %0, %1, %2, implicit $mxcsr
+    ; CHECK-NEXT: %4:vr128 = nofpexcept ADDPDrr %0, %1, implicit $mxcsr
+    ; CHECK-NEXT: %5:vr128 = nofpexcept SUBPDrr %4, %2, implicit $mxcsr
+    ; CHECK-NEXT: %7:vr128 = nofpexcept ADDPDrr %6, killed %5, implicit $mxcsr
+    ; CHECK-NEXT: $xmm0 = COPY %7
+
+...
+---
+name:            '?muladd_test6@@YA?AU__m128d@@U1@00@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: vr128, preferred-register: '' }
+  - { id: 1, class: vr128, preferred-register: '' }
+  - { id: 2, class: vr128, preferred-register: '' }
+  - { id: 3, class: vr128, preferred-register: '' }
+  - { id: 4, class: vr128, preferred-register: '' }
+liveins:
+  - { reg: '$xmm0', virtual-reg: '%0' }
+  - { reg: '$xmm1', virtual-reg: '%1' }
+  - { reg: '$xmm2', virtual-reg: '%2' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.entry:
+    liveins: $xmm0, $xmm1, $xmm2
+  
+    %2:vr128 = COPY $xmm2
+    %1:vr128 = COPY $xmm1
+    %0:vr128 = COPY $xmm0
+    %3:vr128 = nofpexcept MULPDrr %0, %1, implicit $mxcsr
+    %4:vr128 = nofpexcept MULPDrr %3, %2, implicit $mxcsr
+    $xmm0 = COPY %4
+    RET 0, $xmm0
+
+    ; CHECK: %0:vr128 = COPY $xmm0
+    ; CHECK-NEXT: %3:vr128 = nofpexcept MULPDrr %0, %1, implicit $mxcsr
+    ; CHECK-NEXT: %4:vr128 = nofpexcept MULPDrr %3, %2, implicit $mxcsr
+    ; CHECK-NEXT: $xmm0 = COPY %4
+
+...
+---
+name:            '?swap_addpd@@YA?AU__m128d@@U1@00@Z'
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   true
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: vr128, preferred-register: '' }
+  - { id: 1, class: vr128, preferred-register: '' }
+  - { id: 2, class: vr128, preferred-register: '' }
+  - { id: 3, class: vr128, preferred-register: '' }
+  - { id: 4, class: vr128, preferred-register: '' }
+  - { id: 5, class: vr128, preferred-register: '' }
+  - { id: 6, class: vr128, preferred-register: '' }
+liveins:
+  - { reg: '$xmm1', virtual-reg: '%1' }
+  - { reg: '$xmm2', virtual-reg: '%2' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:
+  - id:              0
+    value:           '<2 x double> <double -2.000000e+00, double -2.000000e+00>'
+    alignment:       16
+    isTargetSpecific: false
+machineFunctionInfo: {}
+body:             |
+  bb.0.entry:
+    liveins: $xmm1, $xmm2
+  
+    %2:vr128 = COPY $xmm2
+    %1:vr128 = COPY $xmm1
+    %3:vr128 = nofpexcept MULPDrr %1, %2, implicit $mxcsr
+    %4:vr128 = nofpexcept DIVPDrr %2, %1, implicit $mxcsr
+    %5:vr128 = nofpexcept ADDPDrr %4, killed %3, implicit $mxcsr
+    %6:vr128 = nofpexcept ADDPDrm %5, $rip, 1, $noreg, %const.0, $noreg, implicit $mxcsr :: (load (s128) from constant-pool)
+    $xmm0 = COPY %6
+    RET 0, $xmm0
+
+    ; CHECK: %1:vr128 = COPY $xmm1
+    ; CHECK-NEXT: %5:vr128 = VFMADD213PDZ128r %1, %2, %4, implicit $mxcsr
+    ; CHECK-NEXT: %4:vr128 = nofpexcept DIVPDrr %2, %1, implicit $mxcsr
+    ; CHECK-NEXT: %6:vr128 = nofpexcept ADDPDrm %5, $rip, 1, $noreg, %const.0, $noreg, implicit $mxcsr :: (load (s128) from constant-pool)
+    ; CHECK-NEXT: $xmm0 = COPY %6
+
+...
