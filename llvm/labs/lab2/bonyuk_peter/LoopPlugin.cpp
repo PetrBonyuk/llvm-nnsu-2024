@@ -45,16 +45,12 @@ struct LoopPlugin : public llvm::PassInfoMixin<LoopPlugin> {
     return llvm::PreservedAnalyses::all();
   }
 
-  bool LoopCallPresent(const std::string &LoopFuncName,
-                       llvm::BasicBlock *block) {
-    if (!block)
-      return false;
-    for (auto &inst : *block) {
-      if (auto *instCall = llvm::dyn_cast<llvm::CallInst>(&inst)) {
-        if (auto *CallFunc = instCall->getCalledFunction()) {
-          if (CallFunc->getName() == LoopFuncName) {
-            return true;
-          }
+  bool LoopCallPresent(const std::string &LoopFuncName, llvm::BasicBlock *BB) {
+    for (auto &Inst : *BB) {
+      if (auto *CallInst = llvm::dyn_cast<llvm::CallInst>(&Inst)) {
+        if (CallInst->getCalledFunction() &&
+            CallInst->getCalledFunction()->getName().str() == LoopFuncName) {
+          return true;
         }
       }
     }
