@@ -28,25 +28,24 @@ public:
     std::string Deprecated = "deprecated";
     if (CaseInsensitive) {
       std::transform(FuncName.begin(), FuncName.end(), FuncName.begin(),
-                     [](unsigned char c return std::tolower(c);
-    });
+                     [](unsigned char c {
+        return std::tolower(c); });
       std::transform(Deprecated.begin(), Deprecated.end(), Deprecated.begin(),
-                     [](unsigned char c return std::tolower(c);
-  });
-}
+                     [](unsigned char c {
+        return std::tolower(c); });
+    }
 
-if (FuncName.find(Deprecated) != std::string::npos) {
-  DiagnosticsEngine &Diags = ast_Context->getDiagnostics();
-  size_t CustomDiagID =
-      Diags.getCustomDiagID(DiagnosticsEngine::Warning,
-                            "The function name contains the word 'deprecated'");
-  Diags.Report(Funct->getLocation(), CustomDiagID)
-      << Funct->getNameInfo().getAsString();
-}
-return true;
-}
-}
-;
+    if (FuncName.find(Deprecated) != std::string::npos) {
+      DiagnosticsEngine &Diags = ast_Context->getDiagnostics();
+      unsigned CustomDiagID = Diags.getCustomDiagID(
+          DiagnosticsEngine::Warning,
+          "The function name contains the word 'deprecated'");
+      Diags.Report(Funct->getLocation(), CustomDiagID)
+          << Funct->getNameInfo().getAsString();
+    }
+    return true;
+  }
+};
 
 class DeprecFuncConsumer : public clang::ASTConsumer {
 private:
