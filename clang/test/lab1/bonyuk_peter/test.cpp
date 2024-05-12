@@ -1,13 +1,15 @@
-// RUN: %clang_cc1 -load %llvmshlibdir/depWarningPluginBonyuk%pluginext -plugin deprecated-warning %s 2>&1 | FileCheck %s
+// RUN: %clang_cc1 -load %llvmshlibdir/depWarningPluginBonyuk%pluginext -plugin deprecated-warning -plugin-arg-deprecated-warning help %s 2>&1 | FileCheck %s --check-prefix=CHECK-HELP
+// RUN: %clang_cc1 -load %llvmshlibdir/depWarningPluginBonyuk%pluginext -plugin deprecated-warning -plugin-arg-deprecated-warning case-insensitive %s 2>&1 | FileCheck %s --check-prefix=CHECK-CASE-INSENSITIVE
 
-// CHECK: warning: The function name contains the word 'deprecated'
-void deprecated();
+// CHECK-HELP: DeprecFuncPlugin: Checks for deprecated functions in the code.
+// CHECK-CASE-INSENSITIVE: warning: The function name contains the word 'deprecated'
+void DeprecatedFunction();
 
-// CHECK: warning: The function name contains the word 'deprecated'
-void cfgdeprecatedasad();
+// CHECK-CASE-INSENSITIVE-NOT: warning: The function name contains the word 'deprecated'
+void deprecatedfunction();
 
-// CHECK: warning: The function name contains the word 'deprecated'
-void yufdeprecatedasSVDfd();
+// CHECK-CASE-INSENSITIVE: warning: The function name contains the word 'deprecated'
+void DEPRECATEDFUNCTION();
 
 // CHECK-NOT: warning: The function name contains the word 'deprecated'
 void something();
@@ -16,4 +18,21 @@ void something();
 void deprecatend();
 
 // CHECK-NOT: warning: The function name contains the word 'deprecated'
+void deprecate();
+
+// RUN: %clang_cc1 -load %llvmshlibdir/depWarningPluginBonyuk%pluginext -plugin deprecated-warning -plugin-arg-deprecated-warning case-insensitive %s 2>&1 | FileCheck %s --check-prefix=CHECK-CASE-INSENSITIVE-NEW
+
+// CHECK-CASE-INSENSITIVE-NEW: warning: The function name contains the word 'deprecated'
+void cfgdeprecatedasad();
+
+// CHECK-CASE-INSENSITIVE-NEW: warning: The function name contains the word 'deprecated'
+void yufdeprecatedasSVDfd();
+
+// CHECK-CASE-INSENSITIVE-NEW-NOT: warning: The function name contains the word 'deprecated'
+void something();
+
+// CHECK-CASE-INSENSITIVE-NEW-NOT: warning: The function name contains the word 'deprecated'
+void deprecatend();
+
+// CHECK-CASE-INSENSITIVE-NEW-NOT: warning: The function name contains the word 'deprecated'
 void deprecate();
