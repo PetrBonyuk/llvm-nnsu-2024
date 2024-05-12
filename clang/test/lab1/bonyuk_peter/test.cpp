@@ -24,7 +24,7 @@ void deprecate();
 // RUN: %clang_cc1 -load %llvmshlibdir/depWarningPluginBonyuk%pluginext -plugin deprecated-warning %s 2>&1 | FileCheck %s --check-prefix=CHECK-CASE-SENSITIVE
 
 // CHECK-CASE-SENSITIVE: warning: The function name contains the word 'deprecated'
-void Deprecatedasad();
+void afcDeprecatedasad();
 
 // CHECK-CASE-SENSITIVE-NOT: warning: The function name contains the word 'deprecated'
 void yufDeprecatdasSVDfd();
