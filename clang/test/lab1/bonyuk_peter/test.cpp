@@ -5,7 +5,7 @@
 // CHECK-CASE-INSENSITIVE: warning: The function name contains the word 'deprecated'
 void DeprecatedFunction();
 
-// CHECK-CASE-INSENSITIVE-NOT: warning: The function name contains the word 'deprecated'
+// CHECK-CASE-INSENSITIVE: warning: The function name contains the word 'deprecated'
 void deprecatedfunction();
 
 // CHECK-CASE-INSENSITIVE: warning: The function name contains the word 'deprecated'
