@@ -26,4 +26,4 @@ void deprecate();
 void cfgdeprecatedasad();
 
 // CHECK-CASE-INSENSITIVE-NEW: warning: The function name contains the word 'deprecated'
-void yufdeprecatedasSVDfd();();
+void yufdeprecatedasSVDfd();
