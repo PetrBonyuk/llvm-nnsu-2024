@@ -31,7 +31,7 @@ public:
                      [](unsigned char c) { return std::tolower(c); });
     }
 
-    if (!CaseInsensitive && FuncName.find(Deprecated) != std::string::npos) {
+    if (FuncName.find(Deprecated) == std::string::npos) {
       DiagnosticsEngine &Diags = ast_Context->getDiagnostics();
       unsigned CustomDiagID = Diags.getCustomDiagID(
           DiagnosticsEngine::Warning,
