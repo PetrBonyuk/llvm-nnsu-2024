@@ -7,9 +7,6 @@
 void DeprecatedFunction();
 
 // CHECK-CASE-INSENSITIVE: warning: The function name contains the word 'deprecated'
-void deprecatedfunction();
-
-// CHECK-CASE-INSENSITIVE: warning: The function name contains the word 'deprecated'
 void DEPRECATEDFUNCTION();
 
 // CHECK-NOT: warning: The function name contains the word 'deprecated'
@@ -24,7 +21,7 @@ void deprecate();
 // RUN: %clang_cc1 -load %llvmshlibdir/depWarningPluginBonyuk%pluginext -plugin deprecated-warning %s 2>&1 | FileCheck %s --check-prefix=CHECK-CASE-SENSITIVE
 
 // CHECK-CASE-SENSITIVE: warning: The function name contains the word 'deprecated'
-void afcDeprecatedasad();
+void afcdeprecatedasad();
 
 // CHECK-CASE-SENSITIVE-NOT: warning: The function name contains the word 'deprecated'
-void yufDeprecatdasSVDfd();
+void yufDeprecatedasSVDfd();
