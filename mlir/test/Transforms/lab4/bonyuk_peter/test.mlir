@@ -21,10 +21,12 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<#dlti.dl_entry<!llvm.ptr<272>, d
     llvm.store %arg0, %1 {alignment = 8 : i64} : f64, !llvm.ptr
     llvm.store %arg1, %2 {alignment = 8 : i64} : f64, !llvm.ptr
     llvm.store %arg2, %3 {alignment = 8 : i64} : f64, !llvm.ptr
-    %4 = llvm.load %1 {alignment = 8 : i64} : !llvm.ptr -> f64
-    %5 = llvm.load %2 {alignment = 8 : i64} : !llvm.ptr -> f64
-    %6 = llvm.fmul %4, %5  : f64
-    %7 = llvm.fadd %3, %6  : f64
+    %4 = llvm.load %3 {alignment = 8 : i64} : f64, !llvm.ptr
+    %5 = llvm.fmul %4, %1 : f64
+    %6 = llvm.fadd %5, %2 : f64
+    %8 = llvm.load %3 {alignment = 8 : i64} : !llvm.ptr -> f64 
+    %7 = llvm.fadd %8, %6 : f64
+
     // CHECK-NOT: %6 = llvm.fmul %4, %5  : f64
     // CHECK-NOT: %7 = llvm.fadd %3, %6  : f64
     // CHECK: %6 = llvm.intr.fma(%4, %5, %3)  : (f64, f64, f64) -> f64
