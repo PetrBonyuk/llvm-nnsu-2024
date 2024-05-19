@@ -1,73 +1,63 @@
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
-#include "mlir/Tools/Plugins/PassPlugin.h"
-#include "mlir/Dialect/StandardOps/IR/Ops.h"
 
 using namespace mlir;
-using namespace mlir::StandardOps;
 
 namespace {
-class FusedMultiplyAddPass
-    : public PassWrapper<FusedMultiplyAddPass, OperationPass<ModuleOp>> {
-public:
-  StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
-  StringRef getDescription() const final {
-    return "This Pass combines the operations of addition and multiplication into one";
-  }
+	class FusedMultiplyAddPass : public PassWrapper<FusedMultiplyAddPass, OperationPass<ModuleOp>> {
+	public:
+		StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
+		StringRef getDescription() const final {
+			return "This Pass combines the operations of addition and multiplication into one";
+		}
 
-  void runOnOperation() override {
-	  ModuleOp module = getOperation();
-	  module.walk([&](Operation *operation) {
-		  if (auto addOperation = dyn_cast<AddFOp>(operation)) {
-			  Value addLeft = addOperation.getOperand(0);
-			  Value addRight = addOperation.getOperand(1);
+		void runOnOperation() override {
+			ModuleOp module = getOperation();
+			module.walk([&](Operation *op) {
+				if (auto addOp = dyn_cast<AddFOp>(op)) {
+					handleAddOperation(addOp);
+				}
+				else if (auto mulOp = dyn_cast<MulFOp>(op)) {
+					handleMultiplyOperation(mulOp);
+				}
+			});
+		}
 
-			  if (auto multiplyLeft = addLeft.getDefiningOp<MulFOp>()) {
-				  handleMultiplyOperation(addOperation, multiplyLeft, addRight);
-			  }
-			  else if (auto multiplyRight = addRight.getDefiningOp<MulFOp>()) {
-				  handleMultiplyOperation(addOperation, multiplyRight, addLeft);
-			  }
-		  }
-	  });
+	private:
+		void handleAddOperation(AddFOp addOp) {
+			Value left = addOp.getOperand(0);
+			Value right = addOp.getOperand(1);
 
-	  module.walk([&](Operation *operation) {
-		  if (auto multiplyOperation = dyn_cast<MulFOp>(operation)) {
-			  if (multiplyOperation.use_empty()) {
-				  multiplyOperation.erase();
-			  }
-		  }
-	  });
-  }
+			if (auto mulOp = dyn_cast<MulFOp>(left.getDefiningOp())) {
+				replaceWithFMA(addOp, mulOp, right);
+			}
+			else if (auto mulOp = dyn_cast<MulFOp>(right.getDefiningOp())) {
+				replaceWithFMA(addOp, mulOp, left);
+			}
+		}
 
-private:
-  void HandMultiplyOperation(LLVM::FAddOp &AddOperation, LLVM::FMulOp &MultiplyOperation,
-                             Value &Operand) {
-    OpBuilder builder(AddOperation);
-    Value FMAOperation = builder.create<LLVM::FMAOp>(AddOperation.getLoc(), MultiplyOperation.getOperand(0),
-      MultiplyOperation.getOperand(1), Operand);
-    AddOperation.replaceAllUsesWith(FMAOperation);
+		void handleMultiplyOperation(MulFOp mulOp) {
+			if (mulOp.use_empty()) {
+				mulOp.erase();
+			}
+		}
 
-    if (MultiplyOperation.use_empty()) {
-      MultiplyOperation.erase();
-    }
+		void replaceWithFMA(AddFOp addOp, MulFOp mulOp, Value operand) {
+			OpBuilder builder(addOp);
+			Value fmaOp = builder.create<FMAFOp>(addOp.getLoc(), mulOp.getOperand(0),
+				mulOp.getOperand(1), operand);
+			addOp.replaceAllUsesWith(fmaOp);
 
-    if (FMAOperation.use_empty()) {
-      AddOperation.erase();
-    }
-  }
-};
+			if (mulOp.use_empty()) {
+				mulOp.erase();
+			}
+
+			if (fmaOp.use_empty()) {
+				addOp.erase();
+			}
+		}
+	};
 } // namespace
 
-MLIR_DECLARE_EXPLICIT_TYPE_ID(FusedMultiplyAddPass)
-MLIR_DEFINE_EXPLICIT_TYPE_ID(FusedMultiplyAddPass)
-
-PassPluginLibraryInfo getFusedMultiplyAddPassPluginInfo() {
-  return {MLIR_PLUGIN_API_VERSION, "bonyuk_fused_multiply_add", LLVM_VERSION_STRING,
-          []() { PassRegistration<FusedMultiplyAddPass>(); }};
-}
-
-extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo mlirGetPassPluginInfo() {
-  return getFusedMultiplyAddPassPluginInfo();
-}
+static PassRegistration<FusedMultiplyAddPass> registration("bonyuk_fused_multiply_add", "Combine addition and multiplication operations");
