@@ -2,8 +2,10 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Tools/Plugins/PassPlugin.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 
 using namespace mlir;
+using namespace mlir::StandardOps;
 
 namespace {
 class FusedMultiplyAddPass
@@ -15,27 +17,28 @@ public:
   }
 
   void runOnOperation() override {
-    ModuleOp module = getOperation();
-    module.walk([&](Operation *operation) {
-      if (auto AddOperation = dyn_cast<LLVM::FAddOp>(operation)) {
-        Value AddLeft = AddOperation.getOperand(0);
-        Value AddRight = AddOperation.getOperand(1);
+	  ModuleOp module = getOperation();
+	  module.walk([&](Operation *operation) {
+		  if (auto addOperation = dyn_cast<AddFOp>(operation)) {
+			  Value addLeft = addOperation.getOperand(0);
+			  Value addRight = addOperation.getOperand(1);
 
-        if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
-          HandMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
-        } else if (auto MultiplyRight = AddRight.getDefiningOp<LLVM::FMulOp>()) {
-          HandMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
-        }
-      }
-    });
+			  if (auto multiplyLeft = addLeft.getDefiningOp<MulFOp>()) {
+				  handleMultiplyOperation(addOperation, multiplyLeft, addRight);
+			  }
+			  else if (auto multiplyRight = addRight.getDefiningOp<MulFOp>()) {
+				  handleMultiplyOperation(addOperation, multiplyRight, addLeft);
+			  }
+		  }
+	  });
 
-    module.walk([&](Operation *operation) {
-      if (auto MultiplyOperation = dyn_cast<LLVM::FMulOp>(operation)) {
-        if (MultiplyOperation.use_empty()) {
-		  MultiplyOperation.erase();
-        }
-      }
-    });
+	  module.walk([&](Operation *operation) {
+		  if (auto multiplyOperation = dyn_cast<MulFOp>(operation)) {
+			  if (multiplyOperation.use_empty()) {
+				  multiplyOperation.erase();
+			  }
+		  }
+	  });
   }
 
 private:
