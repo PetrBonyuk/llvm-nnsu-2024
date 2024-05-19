@@ -40,15 +40,19 @@ public:
 
 private:
   void HandMultiplyOperation(LLVM::FAddOp &AddOperation, LLVM::FMulOp &MultiplyOperation,
-                   Value &Operand) {
+                             Value &Operand) {
     OpBuilder builder(AddOperation);
-    Value FMAOperation = builder.create<LLVM::FMAOp>(AddOperation.getLoc(), MultiplyOperation.getOperand(0),
-                                             MultiplyOperation.getOperand(1), Operand);
+    Value FMAOperation = builder.createLLVM::FMAOp(AddOperation.getLoc(), MultipiplyOperation.getOperand(0),
+      MultiplyOperation.getOperand(1), Operand);
     AddOperation.replaceAllUsesWith(FMAOperation);
-    if (MultiplyOperation.getOperand(0).hasOneUse()) {
-		MultiplyOperation.erase();
+
+    if (MultiplyOperation.use_empty()) {
+      MultiplyOperation.erase();
     }
-    AddOperation.erase();
+
+    if (FMAOperation.use_empty()) {
+      AddOperation.erase();
+    }
   }
 };
 } // namespace
