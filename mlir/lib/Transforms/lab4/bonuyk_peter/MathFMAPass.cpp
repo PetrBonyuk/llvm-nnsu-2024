@@ -7,46 +7,48 @@ using namespace mlir;
 
 namespace {
 class FusedMultiplyAddPass
-    : public PassWrapper<FusedMultiplyAddPass, FunctionPass> {
+    : public PassWrapper<FusedMultiplyAddPass, OperationPass<ModuleOp>> {
 public:
-  static constexpr TypeID PassID = MLIR_TYPEID_EXPLICIT(FusedMultiplyAddPass);
-
   StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
   StringRef getDescription() const final {
-    return "Merge multiplication and addition into math.fma";
+    return "This Pass combines the operations of addition and multiplication into one";
   }
 
-  void runOnFunction() override {
-    ConversionTarget target(getContext());
-    target.addLegalOp<ModuleOp, FuncOp, ReturnOp, ConstantOp, CmpFOp, CmpIOp,
-                      AddFOp, MulFOp>();
+  void runOnOperation() override {
+    ModuleOp module = getOperation();
+    module.walk([&](Operation *operation) {
+      if (auto AddOperation = dyn_cast<LLVM::FAddOp>(operation)) {
+        Value AddLeft = AddOperation.getOperand(0);
+        Value AddRight = AddOperation.getOperand(1);
 
-    OwningRewritePatternList patterns;
-    patterns.insert<FusedMultiplyAddPattern>(&getContext());
+        if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
+          handleMulOp(AddOperation, MultiplyLeft, AddRight);
+        } else if (auto MultiplyRight = AddRight.getDefiningOp<LLVM::FMulOp>()) {
+          handleMulOp(AddOperation, MultiplyRight, AddLeft);
+        }
+      }
+    });
 
-    if (failed(applyPartialConversion(getFunction(), target, std::move(patterns)))) {
-      signalPassFailure();
-    }
+    module.walk([&](Operation *operation) {
+      if (auto MultiplyOperation = dyn_cast<LLVM::FMulOp>(operation)) {
+        if (MultiplyOperation.use_empty()) {
+		  MultiplyOperation.erase();
+        }
+      }
+    });
   }
-};
 
-class FusedMultiplyAddPattern : public OpRewritePattern<AddFOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(AddFOp addOp,
-                                PatternRewriter &rewriter) const override {
-    Value mulOpA, mulOpB;
-    if (!matchPattern(addOp.getOperand(0), m_MulFOp(mulOpA, mulOpB)) &&
-        !matchPattern(addOp.getOperand(1), m_MulFOp(mulOpA, mulOpB))) {
-      return failure();
+private:
+  void handleMulOp(LLVM::FAddOp &AddOperation, LLVM::FMulOp &MultiplyOperation,
+                   Value &Operand) {
+    OpBuilder builder(AddOperation);
+    Value FMAOperation = builder.create<LLVM::FMAOp>(AddOperation.getLoc(), MultiplyOperation.getOperand(0),
+                                             MultiplyOperation.getOperand(1), Operand);
+    AddOperation.replaceAllUsesWith(FMAOperation);
+    if (MultiplyOperation.getOperand(0).hasOneUse()) {
+      mulOp.erase();
     }
-
-    auto fmaOp = rewriter.create<math::FMAOp>(addOp.getLoc(), mulOpA, mulOpB,
-                                               addOp.getResult());
-    rewriter.replaceOp(addOp, fmaOp.getResult());
-
-    return success();
+    AddOperation.erase();
   }
 };
 } // namespace
