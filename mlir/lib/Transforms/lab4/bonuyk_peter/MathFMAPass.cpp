@@ -22,9 +22,9 @@ public:
         Value AddRight = AddOperation.getOperand(1);
 
         if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
-          handleMulOp(AddOperation, MultiplyLeft, AddRight);
+          HandMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
         } else if (auto MultiplyRight = AddRight.getDefiningOp<LLVM::FMulOp>()) {
-          handleMulOp(AddOperation, MultiplyRight, AddLeft);
+          HandMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
         }
       }
     });
@@ -39,7 +39,7 @@ public:
   }
 
 private:
-  void handleMulOp(LLVM::FAddOp &AddOperation, LLVM::FMulOp &MultiplyOperation,
+  void HandMultiplyOperation(LLVM::FAddOp &AddOperation, LLVM::FMulOp &MultiplyOperation,
                    Value &Operand) {
     OpBuilder builder(AddOperation);
     Value FMAOperation = builder.create<LLVM::FMAOp>(AddOperation.getLoc(), MultiplyOperation.getOperand(0),
