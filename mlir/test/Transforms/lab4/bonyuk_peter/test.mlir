@@ -25,6 +25,9 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<#dlti.dl_entry<f80, dense<128> :
     %5 = llvm.load %2 {alignment = 8 : i64} : !llvm.ptr -> f64
     %6 = llvm.load %3 {alignment = 8 : i64} : !llvm.ptr -> f64 // Load value from %3
     %7 = llvm.intr.fma(%4, %5, %6) : (f64, f64, f64) -> f64 // Use loaded value in FMA
+    // CHECK-NOT: %6 = llvm.fmul %4, %5 : f64
+    // CHECK-NOT: %7 = llvm.fadd %3, %6 : f64
+    // CHECK: %6 = llvm.intr.fma(%4, %5, %3) : (f64, f64, f64) -> f64
     llvm.return
   }
   llvm.func @functiontwo(%arg0: f64 {llvm.noundef}, %arg1: f64 {llvm.noundef}) attributes {passthrough = ["mustprogress", "noinline", "nounwind", "optnone", ["uwtable", "2"], ["frame-pointer", "all"], ["min-legal-vector-width", "0"], ["no-trapping-math", "true"], ["stack-protector-buffer-size", "8"], ["target-cpu", "x86-64"], ["target-features", "+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87"], ["tune-cpu", "generic"]]} {
@@ -37,10 +40,14 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<#dlti.dl_entry<f80, dense<128> :
     %5 = llvm.mlir.constant(2.0 : f64) : f64
     %6 = llvm.fmul %4, %5 : f64
     %7 = llvm.fadd %5, %6 : f64
-    llvm.store %7, %2 {alignment = 8 : i64} : f64, !llvm.ptr
-    llvm.return
+  // CHECK-NOT: %6 = llvm.intr.fma(%4, %5, %5) : (f64, f64, f64) -> f64
+// CHECK-NOT: %7 = llvm.fadd %5, %6 : f64
+// CHECK: %6 = llvm.fmul %4, %5 : f64
+// CHECK: %7 = llvm.fadd %5, %6 : f64
+  llvm.store %7, %2 {alignment = 8 : i64} : f64, !llvm.ptr
+  llvm.return
   }
-  llvm.func @functionthree(%arg0: f64 {llvm.noundef}) attributes {passthrough = ["mustprogress", "noinline", "nounwind", "optnone", ["uwtable", "2"], ["frame-pointer", "all"], ["min-legal-vector-width", "0"], ["no-trapping-math", "true"], ["stack-protector-buffer-size", "8"], ["target-cpu", "x8-64"], ["target-features", "+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87"], ["tune-cpu", "generic"]]} {
+llvm.func @functionthree(%arg0: f64 {llvm.noundef}) attributes {passthrough = ["mustprogress", "noinline", "nounwind", "optnone", ["uwtable", "2"], ["frame-pointer", "all"], ["min-legal-vector-width", "0"], ["no-trapping-math", "true"], ["stack-protector-buffer-size", "8"], ["target-cpu", "x8-64"], ["target-features", "+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87"], ["tune-cpu", "generic"]]} {
     %0 = llvm.mlir.constant(1 : i32) : i32
     %1 = llvm.mlir.constant(2.0 : f64) : f64
     %2 = llvm.mlir.constant(2.0 : f64) : f64
@@ -49,6 +56,9 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<#dlti.dl_entry<f80, dense<128> :
     %4 = llvm.load %3 {alignment = 8 : i64} : !llvm.ptr -> f64
     %5 = llvm.intr.fma(%4, %4, %2) : (f64, f64, f64) -> f64 // Use %4 as the multiplier
     %6 = llvm.fadd %5, %2 : f64
-    llvm.return
-  }
+  // CHECK-NOT: %5 = llvm.fmul %4, %1 : f64
+// CHECK-NOT: %6 = llvm.fadd %5, %2 : f64
+// CHECK: %5 = llvm.intr.fma(%4, %1, %1) : (f64, f64, f64) -> f64
+  llvm.return
+}
 }
