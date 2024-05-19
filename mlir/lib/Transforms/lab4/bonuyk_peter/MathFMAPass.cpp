@@ -6,8 +6,8 @@
 using namespace mlir;
 
 namespace {
-class FusedMultiplyAddPass
-    : public PassWrapper<FusedMultiplyAddPass, OperationPass<ModuleOp>> {
+class BonyukFusedMultiplyAddPass
+    : public PassWrapper<BonyukFusedMultiplyAddPass, OperationPass<ModuleOp>> {
 public:
   StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
   StringRef getDescription() const final {
@@ -57,12 +57,12 @@ private:
 };
 } // namespace
 
-MLIR_DECLARE_EXPLICIT_TYPE_ID(FusedMultiplyAddPass)
-MLIR_DEFINE_EXPLICIT_TYPE_ID(FusedMultiplyAddPass)
+MLIR_DECLARE_EXPLICIT_TYPE_ID(BonyukFusedMultiplyAddPass)
+MLIR_DEFINE_EXPLICIT_TYPE_ID(BonyukFusedMultiplyAddPass)
 
 PassPluginLibraryInfo getFusedMultiplyAddPassPluginInfo() {
   return {MLIR_PLUGIN_API_VERSION, "bonyuk_fused_multiply_add", LLVM_VERSION_STRING,
-          []() { PassRegistration<FusedMultiplyAddPass>(); }};
+          []() { PassRegistration<BonyukFusedMultiplyAddPass>(); }};
 }
 
 extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo mlirGetPassPluginInfo() {
