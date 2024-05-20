@@ -41,7 +41,7 @@ public:
   }
 
 private:
-  void HandleMultiplyOperation(LLVM::FAddOp &AddOperation, 
+  void HandleMultiplyOperation(LLVM::FAddOp &AddOperation,
                                LLVM::FMulOp &MultiplyOperation,
                                Value &Operand) {
     OpBuilder builder(AddOperation);
@@ -65,7 +65,7 @@ MLIR_DECLARE_EXPLICIT_TYPE_ID(BonyukFusedMultiplyAddPass)
 MLIR_DEFINE_EXPLICIT_TYPE_ID(BonyukFusedMultiplyAddPass)
 
 PassPluginLibraryInfo getFusedMultiplyAddPassPluginInfo() {
-  return {MLIR_PLUGIN_API_VERSION, "bonyuk_fused_multiply_add", 
+  return {MLIR_PLUGIN_API_VERSION, "bonyuk_fused_multiply_add",
           LLVM_VERSION_STRING,
           []() { PassRegistration<BonyukFusedMultiplyAddPass>(); }};
 }
