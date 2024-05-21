@@ -6,65 +6,63 @@
 using namespace mlir;
 
 namespace {
-class BonyukFusedMultiplyAddPass
-    : public PassWrapper<BonyukFusedMultiplyAddPass, OperationPass<ModuleOp>> {
-public:
-  StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
-  StringRef getDescription() const final {
-    return "This Pass combines the operations of addition and multiplication into one";
-  }
+	class BonyukFusedMultiplyAddPass
+		: public PassWrapper<BonyukFusedMultiplyAddPass, OperationPass> {
+	public:
+		StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
+		StringRef getDescription() const final {
+			return "This Pass combines the operations of addition and multiplication into one";
+		}
 
-  void runOnOperation() override {
-    ModuleOp module = getOperation();
-    module.walk([&](Operation *operation) {
-      if (auto AddOperation = dyn_cast<LLVM::FAddOp>(operation)) {
-        Value AddLeft = AddOperation.getOperand(0);
-        Value AddRight = AddOperation.getOperand(1);
+		void runOnOperation() override {
+			ModuleOp module = getOperation();
+			module.walk([&](Operation *operation) {
+				if (auto addOp = dyn_cast<LLVM::FAddOp>(operation)) {
+					Value addLeft = addOp.getOperand(0);
+					Value addRight = addOp.getOperand(1);
 
-        if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
-          HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
-        } else if (auto MultiplyRight = AddRight.getDefiningOp<LLVM::FMulOp>()) {
-          HandleMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
-        }
-      }
-    });
+					if (auto multiplyLeft = addLeft.getDefiningOp<LLVM::FMulOp>()) {
+						handleMultiplyOperation(addOp, multiplyLeft, addRight);
+					}
+					else if (auto multiplyRight = addRight.getDefiningOp<LLVM::FMulOp>()) {
+						handleMultiplyOperation(addOp, multiplyRight, addLeft);
+					}
+				}
+			});
 
-    module.walk([&](Operation *operation) {
-      if (auto MultiplyOperation = dyn_cast<LLVM::FMulOp>(operation)) {
-        if (MultiplyOperation.use_empty()) {
-		  MultiplyOperation.erase();
-        }
-      }
-    });
-  }
+			module.walk([](LLVM::FMulOp mulOp) {
+				if (mulOp.use_empty()) {
+					mulOp.erase();
+				}
+			});
+		}
 
-private:
-  void HandleMultiplyOperation(LLVM::FAddOp &AddOperation, LLVM::FMulOp &MultiplyOperation,
-                             Value &Operand) {
-    OpBuilder builder(AddOperation);
-    Value FMAOperation = builder.create<LLVM::FMAOp>(AddOperation.getLoc(), MultiplyOperation.getOperand(0),
-      MultiplyOperation.getOperand(1), Operand);
-    AddOperation.replaceAllUsesWith(FMAOperation);
+	private:
+		void handleMultiplyOperation(LLVM::FAddOp addOp, LLVM::FMulOp multiplyOp, Value operand) {
+			OpBuilder builder(addOp);
+			Value fmaOp = builder.create<LLVM::FMAOp>(addOp.getLoc(), multiplyOp.getOperand(0),
+				multiplyOp.getOperand(1), operand);
+			addOp.replaceAllUsesWith(fmaOp);
 
-    if (MultiplyOperation.use_empty()) {
-      MultiplyOperation.erase();
-    }
+			if (multiplyOp.use_empty()) {
+				multiplyOp.erase();
+			}
 
-    if (FMAOperation.use_empty()) {
-      AddOperation.erase();
-    }
-  }
-};
+			if (addOp.use_empty()) {
+				addOp.erase();
+			}
+		}
+	};
 } // namespace
 
 MLIR_DECLARE_EXPLICIT_TYPE_ID(BonyukFusedMultiplyAddPass)
 MLIR_DEFINE_EXPLICIT_TYPE_ID(BonyukFusedMultiplyAddPass)
 
 PassPluginLibraryInfo getFusedMultiplyAddPassPluginInfo() {
-  return {MLIR_PLUGIN_API_VERSION, "bonyuk_fused_multiply_add", LLVM_VERSION_STRING,
-          []() { PassRegistration<BonyukFusedMultiplyAddPass>(); }};
+	return { MLIR_PLUGIN_API_VERSION, "bonyuk_fused_multiply_add", LLVM_VERSION_STRING,
+			{createBonyukFusedMultiplyAddPass()} };
 }
 
 extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo mlirGetPassPluginInfo() {
-  return getFusedMultiplyAddPassPluginInfo();
+	return getFusedMultiplyAddPassPluginInfo();
 }
