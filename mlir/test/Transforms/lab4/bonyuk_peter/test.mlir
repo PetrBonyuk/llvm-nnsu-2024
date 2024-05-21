@@ -32,17 +32,18 @@ module {
   }
   llvm.func @functiontwo(%arg0: f64 {llvm.noundef}, %arg1: f64 {llvm.noundef}) attributes {passthrough = ["mustprogress", "noinline", "nounwind", "optnone", ["uwtable", "2"], ["frame-pointer", "all"], ["min-legal-vector-width", "0"], ["no-trapping-math", "true"], ["stack-protector-buffer-size", "8"], ["target-cpu", "x86-64"], ["target-features", "+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87"], ["tune-cpu", "generic"]]} {
     %0 = llvm.mlir.constant(1 : i32) : i32
-    %1 = llvm.alloca %0 x f64 {alignment = 8 : i64} : (i32) -> !llvm.ptr
+    %1 = llvm.mlir.constant(2.0 : f64) : f64
     %2 = llvm.alloca %0 x f64 {alignment = 8 : i64} : (i32) -> !llvm.ptr
     %3 = llvm.alloca %0 x f64 {alignment = 8 : i64} : (i32) -> !llvm.ptr
     llvm.store %arg0, %1 {alignment = 8 : i64} : f64, !llvm.ptr
-    %4 = llvm.load %1 {alignment = 8 : i64} : !llvm.ptr -> f64
-    %5 = llvm.mlir.constant(2.0 : f64) : f64
+    llvm.store %arg0, %2 {alignment = 8 : i64} : f64, !llvm.ptr
+    %4 = llvm.load %2 {alignment = 8 : i64} : !llvm.ptr -> f64
+    %5 = llvm.load %3 {alignment = 8 : i64} : !llvm.ptr -> f64
     %6 = llvm.fmul %4, %5 : f64
-    %7 = llvm.fadd %5, %6 : f64
-    // CHECK-NOT: %6 = llvm.fadd %5, %2 : f64
-// CHECK-NOT: %6 = llvm.fmul %4, %1 : f64
-// CHECK: %7 = llvm.intr.fma(%4, %5, %6) : (f64, f64, f64) -> f64
+    %7 = llvm.fmul %6, %7 : f64
+    // CHECK-NOT: %7 = llvm.fmul %4, %5 : f64
+    // CHECK-NOT: %8 = llvm.fmul %6, %7 : f64
+// CHECK: %7 = llvm.intr.fma(%1, %4, %5) : (f64, f64, f64) -> f64
     llvm.return
   }
 llvm.func @functionthree(%arg0: f64 {llvm.noundef}) attributes {passthrough = ["mustprogress", "noinline", "nounwind", "optnone", ["uwtable", "2"], ["frame-pointer", "all"], ["min-legal-vector-width", "0"], ["no-trapping-math", "true"], ["stack-protector-buffer-size", "8"], ["target-cpu", "x8-64"], ["target-features", "+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87"], ["tune-cpu", "generic"]]} {
