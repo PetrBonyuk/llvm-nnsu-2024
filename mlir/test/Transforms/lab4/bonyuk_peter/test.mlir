@@ -38,7 +38,7 @@ module {
     %3 = llvm.alloca %0 x f64 {alignment = 8 : i64} : (i32) -> !llvm.ptr
     llvm.store %arg0, %1 {alignment = 8 : i64} : f64, !llvm.ptr
     %4 = llvm.load %1 {alignment = 8 : i64} : !llvm.ptr -> f64
-    %5 = llvm.mlir.constant(2.0 : f64) : f64
+    %5 = llvm.mlir.constant(2.000000e+00 : f64) : f64
     %6 = llvm.fmul %4, %5 : f64
     %7 = llvm.fadd %5, %6 : f64
     llvm.store %7, %2 {alignment = 8 : i64} : f64, !llvm.ptr
@@ -50,9 +50,9 @@ module {
     llvm.return
   }
 llvm.func @functionthree(%arg0: f64 {llvm.noundef}) attributes {passthrough = ["mustprogress", "noinline", "nounwind", "optnone", ["uwtable", "2"], ["frame-pointer", "all"], ["min-legal-vector-width", "0"], ["no-trapping-math", "true"], ["stack-protector-buffer-size", "8"], ["target-cpu", "x8-64"], ["target-features", "+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87"], ["tune-cpu", "generic"]]} {
-    %0 = llvm.mlir.constant(1 : i32) : i32
-    %1 = llvm.mlir.constant(2.0 : f64) : f64
-    %2 = llvm.mlir.constant(2.0 : f64) : f64
+    %0 = llvm.mlir.constant(1.000000e+00 : i32) : i32
+    %1 = llvm.mlir.constant(2.000000e+00 : f64) : f64
+    %2 = llvm.mlir.constant(2.000000e+00 : f64) : f64
     %3 = llvm.alloca %0 x f64 {alignment = 8 : i64} : (i32) -> !llvm.ptr
     llvm.store %arg0, %3 {alignment = 8 : i64} : f64, !llvm.ptr
     %4 = llvm.load %3 {alignment = 8 : i64} : !llvm.ptr -> f64
