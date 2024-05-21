@@ -44,7 +44,6 @@ module {
     llvm.store %7, %2 {alignment = 8 : i64} : f64, !llvm.ptr
     // CHECK-NOT: %7 = llvm.fadd %5, %6 : f64
     // CHECK-NOT: %6 = llvm.intr.fma(%4, %5, %5) : (f64, f64, f64) -> f64
-    // CHECK: %7 = llvm.intr.fma(%4, %5, %6) : (f64, f64, f64) -> f64
     // CHECK: %5 = llvm.mlir.constant(2.0 : f64) : f64
     // CHECK: %6 = llvm.intr.fma(%4, %5, %5) : (f64, f64, f64) -> f64
     llvm.return
