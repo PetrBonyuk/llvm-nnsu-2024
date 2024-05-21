@@ -25,10 +25,9 @@ module {
     %6 = llvm.load %3 {alignment = 8 : i64} : !llvm.ptr -> f64 
     %7 = llvm.fmul %4, %5 : f64
     %8 = llvm.fadd %6, %7 : f64
-    // CHECK-NOT: %7 = llvm.intr.fma(%4, %5, %6) : (f64, f64, f64) -> f64
-    // CHECK-NOT: %6 = llvm.fmul %4, %5 : f64
-    // CHECK-NOT: %7 = llvm.fadd %3, %6 : f64
-    // CHECK: %8 = llvm.intr.fma(%4, %5, %6) : (f64, f64, f64) -> f64
+    // CHECK-NOT: %7 = llvm.fmul %4, %5 : f64
+    // CHECK-NOT: %8 = llvm.fadd %6, %7 : f64
+    // CHECK: %8 = llvm.intr.fma(%6, %6, %7) : (f64, f64, f64) -> f64
     llvm.return
   }
   llvm.func @functiontwo(%arg0: f64 {llvm.noundef}, %arg1: f64 {llvm.noundef}) attributes {passthrough = ["mustprogress", "noinline", "nounwind", "optnone", ["uwtable", "2"], ["frame-pointer", "all"], ["min-legal-vector-width", "0"], ["no-trapping-math", "true"], ["stack-protector-buffer-size", "8"], ["target-cpu", "x86-64"], ["target-features", "+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87"], ["tune-cpu", "generic"]]} {
