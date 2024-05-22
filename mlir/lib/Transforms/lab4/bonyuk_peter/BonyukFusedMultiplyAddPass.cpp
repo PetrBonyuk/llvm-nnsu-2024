@@ -23,9 +23,8 @@ public:
       Value AddRight = AddOperation.getOperand(1);
 
       if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
-              HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
-      }
-      else if (auto MultiplyRight = AddRight.getDefiningOp<LLVM::FMulOp>()) {
+        HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
+      } else if (auto MultiplyRight = AddRight.getDefiningOp<LLVM::FMulOp>()) {
         HandleMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
       }
     });
