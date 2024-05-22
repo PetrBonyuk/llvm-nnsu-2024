@@ -1,3 +1,4 @@
+
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
@@ -17,27 +18,24 @@ public:
 
   void runOnOperation() override {
     ModuleOp module = getOperation();
-    module.walk([&](Operation *operation) {
-      if (auto AddOperation = dyn_cast<LLVM::FAddOp>(operation)) {
-        Value AddLeft = AddOperation.getOperand(0);
-        Value AddRight = AddOperation.getOperand(1);
+	module.walk([&](LLVM::FAddOp AddOperation) {
+		Value AddLeft = AddOperation.getOperand(0);
+		Value AddRight = AddOperation.getOperand(1);
 
-        if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
-          HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
-        } else if (auto MultiplyRight =
-                       AddRight.getDefiningOp<LLVM::FMulOp>()) {
-          HandleMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
-        }
-      }
-    });
+		if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
+			HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
+		}
+		else if (auto MultiplyRight =
+			AddRight.getDefiningOp<LLVM::FMulOp>()) {
+			HandleMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
+		}
+	});
 
-    module.walk([&](Operation *operation) {
-      if (auto MultiplyOperation = dyn_cast<LLVM::FMulOp>(operation)) {
-        if (MultiplyOperation.use_empty()) {
-          MultiplyOperation.erase();
-        }
-      }
-    });
+	module.walk([](LLVM::FMulOp MultiplyOperation) {
+		if (MultiplyOperation.use_empty()) {
+			MultiplyOperation.erase();
+		}
+	});
   }
 
 private:
@@ -54,7 +52,7 @@ private:
       MultiplyOperation.erase();
     }
 
-    if (FMAOperation.use_empty()) {
+    if (AddOperation.use_empty()) {
       AddOperation.erase();
     }
   }
