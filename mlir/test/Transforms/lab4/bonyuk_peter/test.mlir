@@ -39,10 +39,11 @@ module {
     llvm.store %arg1, %3 {alignment = 8 : i64} : f64, !llvm.ptr
     %4 = llvm.load %2 {alignment = 8 : i64} : !llvm.ptr -> f64
     %5 = llvm.load %3 {alignment = 8 : i64} : !llvm.ptr -> f64
-    %6 = llvm.fadd %1, %4 : f64
-    %7 = llvm.fmul %6, %5 : f64
-    // CHECK-NOT: %6 = llvm.fadd %1, %4 : f64
-    // CHECK-NOT: %7 = llvm.fmul %6, %5 : f64
+    %6 = llvm.fmul %4, %5 : f64
+    %7 = llvm.fadd %1, %6 : f64
+    
+    // CHECK-NOT: %6 = llvm.fmul %4, %5 : f64
+    // CHECK-NOT: %7 = llvm.fadd %1, %6 : f64
     // CHECK: %6 = llvm.intr.fma(%1, %4, %5) : (f64, f64, f64) -> f64
     llvm.return
   }
