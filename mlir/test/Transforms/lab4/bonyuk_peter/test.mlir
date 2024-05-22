@@ -36,7 +36,7 @@ module {
     %2 = llvm.alloca %0 x f64 {alignment = 8 : i64} : (i32) -> !llvm.ptr
     %3 = llvm.alloca %0 x f64 {alignment = 8 : i64} : (i32) -> !llvm.ptr
     llvm.store %arg0, %2 {alignment = 8 : i64} : f64, !llvm.ptr
-    llvm.store %arg0, %3 {alignment = 8 : i64} : f64, !llvm.ptr
+    llvm.store %arg1, %3 {alignment = 8 : i64} : f64, !llvm.ptr
     %4 = llvm.load %2 {alignment = 8 : i64} : !llvm.ptr -> f64
     %5 = llvm.load %3 {alignment = 8 : i64} : !llvm.ptr -> f64
     %6 = llvm.fadd %1, %4 : f64
