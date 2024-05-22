@@ -58,8 +58,9 @@ llvm.func @functionthree(%arg0: f64 {llvm.noundef}) attributes {passthrough = ["
     %6 = llvm.fadd %5, %1 : f64
     // CHECK-NOT: %6 = llvm.fadd %5, %1 : f64
     // CHECK-NOT: %5 = llvm.fmul %4, %2 : f64
-    // CHECK: %6 = llvm.intr.fma(%2, %4, %1) : (f64, f64, f64) -> f64
-    
+    // CHECK-NOT: %6 = llvm.intr.fma(%4, %5, %1) : (f64, f64, f64) -> f64
+    // CHECK: %5 = llvm.intr.fma(%4, %2, %1) : (f64, f64, f64) -> f64
+
     llvm.return
 }
 }
