@@ -41,7 +41,6 @@ module {
     %5 = llvm.load %3 {alignment = 8 : i64} : !llvm.ptr -> f64
     %6 = llvm.fmul %4, %5 : f64
     %7 = llvm.fadd %1, %6 : f64
-    
     // CHECK-NOT: %6 = llvm.fmul %4, %5 : f64
     // CHECK-NOT: %7 = llvm.fadd %1, %6 : f64
     // CHECK: %6 = llvm.intr.fma(%4, %5, %1) : (f64, f64, f64) -> f64
@@ -58,8 +57,8 @@ llvm.func @functionthree(%arg0: f64 {llvm.noundef}) attributes {passthrough = ["
     %6 = llvm.fadd %5, %1 : f64
     // CHECK-NOT: %6 = llvm.fadd %5, %1 : f64
     // CHECK-NOT: %5 = llvm.fmul %4, %2 : f64
-    // CHECK-NOT: %6 = llvm.intr.fma(%4, %5, %1) : (f64, f64, f64) -> f64
     // CHECK: %5 = llvm.intr.fma(%4, %2, %1) : (f64, f64, f64) -> f64
+    // CHECK: %6 = llvm.intr.fma(%5, %4, %1) : (f64, f64, f64) -> f64
 
     llvm.return
 }
