@@ -18,24 +18,23 @@ public:
 
   void runOnOperation() override {
     ModuleOp module = getOperation();
-	module.walk([&](LLVM::FAddOp AddOperation) {
-		Value AddLeft = AddOperation.getOperand(0);
-		Value AddRight = AddOperation.getOperand(1);
+    module.walk([&](LLVM::FAddOp AddOperation) {
+      Value AddLeft = AddOperation.getOperand(0);
+      Value AddRight = AddOperation.getOperand(1);
 
-		if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
-			HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
-		}
-		else if (auto MultiplyRight =
-			AddRight.getDefiningOp<LLVM::FMulOp>()) {
-			HandleMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
-		}
-	});
+      if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
+              HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
+      }
+      else if (auto MultiplyRight = AddRight.getDefiningOp<LLVM::FMulOp>()) {
+        HandleMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
+      }
+    });
 
-	module.walk([](LLVM::FMulOp MultiplyOperation) {
-		if (MultiplyOperation.use_empty()) {
-			MultiplyOperation.erase();
-		}
-	});
+    module.walk([](LLVM::FMulOp MultiplyOperation) {
+      if (MultiplyOperation.use_empty()) {
+        MultiplyOperation.erase();
+      }
+    });
   }
 
 private:
