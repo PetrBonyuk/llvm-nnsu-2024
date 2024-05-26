@@ -1,7 +1,4 @@
 # RUN: llc -mtriple x86_64-unknown-linux-gnu --load=%llvmshlibdir/X86BonyukPass%shlibext -run-pass=x86-bonyuk-pass  %s -o - | FileCheck %s
-
-
-
 --- |
   ; ModuleID = 'test.ll'
   source_filename = "test.cpp"
@@ -163,10 +160,10 @@ body:             |
     MOV32mi $rbp, 1, $noreg, -8, $noreg, 0 :: (store (s32) into %ir.i)
   
     ; CHECK: frame-setup PUSH64r killed $rbp, implicit-def $rsp, implicit $rsp
-; CHECK: frame-setup CFI_INSTRUCTION def_cfa_offset 16
-; CHECK: frame-setup CFI_INSTRUCTION offset $rbp, -16
-; CHECK: $rbp = frame-setup MOV64rr $rsp
-; CHECK: frame-setup CFI_INSTRUCTION def_cfa_register $rbp
+    ; CHECK-NEXT: frame-setup CFI_INSTRUCTION def_cfa_offset 16
+    ; CHECK-NEXT: frame-setup CFI_INSTRUCTION offset $rbp, -16
+    ; CHECK-NEXT: $rbp = frame-setup MOV64rr $rsp
+    ; CHECK-NEXT: frame-setup CFI_INSTRUCTION def_cfa_register $rbp
     ; CHECK-NEXT: MOV32mr $rbp, 1, $noreg, -20, $noreg, killed renamable $edi :: (store (s32) into %ir.a.addr)
     ; CHECK-NEXT: MOV32mr $rbp, 1, $noreg, -16, $noreg, killed renamable $esi :: (store (s32) into %ir.b.addr)
     ; CHECK-NEXT: MOV32mr $rbp, 1, $noreg, -12, $noreg, killed renamable $edx :: (store (s32) into %ir.c.addr)
@@ -174,7 +171,7 @@ body:             |
     ; CHECK-NEXT: MOV32mi $rbp, 1, $noreg, -4, $noreg, 0 :: (store (s32) into %ir.d)
     ; CHECK-NEXT: MOV32mi $rbp, 1, $noreg, -8, $noreg, 0 :: (store (s32) into %ir.i)
     ; CHECK-NEXT: ADD64ri32 @ic, 11, implicit-def $eflags
-
+  
   bb.1.for.cond:
     successors: %bb.6(0x40000000), %bb.2(0x40000000)
 
@@ -186,7 +183,7 @@ body:             |
     ; CHECK-NEXT: CMP32rm killed renamable $eax, $rbp, 1, $noreg, -20, $noreg, implicit-def $eflags :: (load (s32) from %ir.a.addr)
     ; CHECK-NEXT: ADD64ri32 @ic, 3, implicit-def $eflags
     ; CHECK-NEXT: JCC_1 %bb.6, 13, implicit killed $eflags
-
+  
   bb.2.for.body:
     successors: %bb.4(0x40000000), %bb.3(0x40000000)
 
@@ -198,6 +195,7 @@ body:             |
     ; CHECK-NEXT: CMP32rm killed renamable $eax, $rbp, 1, $noreg, -16, $noreg, implicit-def $eflags :: (load (s32) from %ir.b.addr)
     ; CHECK-NEXT: ADD64ri32 @ic, 3, implicit-def $eflags
     ; CHECK-NEXT: JCC_1 %bb.4, 13, implicit killed $eflags
+  
   bb.3.if.then:
     successors: %bb.4(0x80000000)
 
