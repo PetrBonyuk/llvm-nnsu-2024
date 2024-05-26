@@ -21,24 +21,25 @@ namespace {
 			const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
 			Module *M = MF.getFunction().getParent();
 			LLVMContext &Ctx = M->getContext();
-				// Create a global variable 'ic' to store the instruction count
-				GlobalVariable *GVar = new GlobalVariable(*M, Type::getInt64Ty(Ctx), false, GlobalValue::ExternalLinkage, nullptr, "ic");
-			GVar->setInitializer(ConstantInt::get(Type::getInt64Ty(Ctx), 0));
+			GlobalVariable *GVar = M->getGlobalVariable("ic");
+
+			if (!GVar) {
+				GVar = new GlobalVariable(*M, Type::getInt64Ty(Ctx), false,
+					GlobalValue::ExternalLinkage, nullptr, "ic");
+				GVar->setInitializer(ConstantInt::get(Type::getInt64Ty(Ctx), 0));
+			}
 
 			for (auto &MBB : MF) {
+				unsigned count = 0;
 				for (auto &MI : MBB) {
-					// Increment the global variable 'ic' for each instruction
-					BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(X86::ADD64ri8), X86::RAX)
-						.addReg(X86::RAX)
-						.addImm(1);
-					BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(X86::MOV64mr))
-						.addReg(X86::RIP)
-						.addImm(0)
-						.addReg(0)
-						.addGlobalAddress(GVar)
-						.addReg(0)
-						.addReg(X86::RAX);
+					if (!MI.isDebugInstr())
+						++count;
 				}
+
+				BuildMI(MBB, MBB.getFirstTerminator(), MI.getDebugLoc(),
+					TII->get(X86::ADD64ri32))
+					.addGlobalAddress(GVar, 0, X86II::MO_NO_FLAG)
+					.addImm(count);
 			}
 
 			return true;
