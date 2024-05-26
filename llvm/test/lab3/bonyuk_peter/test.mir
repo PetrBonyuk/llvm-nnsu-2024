@@ -144,6 +144,9 @@ callSites:       []
 debugValueSubstitutions: []
 constants:       []
 machineFunctionInfo: {}
+; CHECK: bb.0.entry:
+; CHECK-NEXT: successors: %bb.1(0x80000000)
+; CHECK-NEXT: liveins: $edi, $edx, $esi
 body:             |
   bb.0.entry:
     successors: %bb.1(0x80000000)
@@ -173,7 +176,8 @@ body:             |
     ; CHECK-NEXT: MOV32mi $rbp, 1, $noreg, -4, $noreg, 0 :: (store (s32) into %ir.d)
     ; CHECK-NEXT: MOV32mi $rbp, 1, $noreg, -8, $noreg, 0 :: (store (s32) into %ir.i)
     ; CHECK-NEXT: ADD64ri32 @ic, 11, implicit-def $eflags
-  
+; CHECK: bb.1.for.cond:
+; CHECK-NEXT: successors: %bb.6(0x40000000), %bb.2(0x40000000)
   bb.1.for.cond:
     successors: %bb.6(0x40000000), %bb.2(0x40000000)
 
@@ -185,7 +189,8 @@ body:             |
     ; CHECK-NEXT: CMP32rm killed renamable $eax, $rbp, 1, $noreg, -20, $noreg, implicit-def $eflags :: (load (s32) from %ir.a.addr)
     ; CHECK-NEXT: ADD64ri32 @ic, 3, implicit-def $eflags
     ; CHECK-NEXT: JCC_1 %bb.6, 13, implicit killed $eflags
-  
+; CHECK: bb.2.for.body:
+; CHECK-NEXT: successors: %bb.4(0x40000000), %bb.3(0x40000000)
   bb.2.for.body:
     successors: %bb.4(0x40000000), %bb.3(0x40000000)
 
@@ -197,7 +202,8 @@ body:             |
     ; CHECK-NEXT: CMP32rm killed renamable $eax, $rbp, 1, $noreg, -16, $noreg, implicit-def $eflags :: (load (s32) from %ir.b.addr)
     ; CHECK-NEXT: ADD64ri32 @ic, 3, implicit-def $eflags
     ; CHECK-NEXT: JCC_1 %bb.4, 13, implicit killed $eflags
-  
+; CHECK: bb.3.if.then:
+; CHECK-NEXT: successors: %bb.4(0x80000000)
   bb.3.if.then:
     successors: %bb.4(0x80000000)
 
