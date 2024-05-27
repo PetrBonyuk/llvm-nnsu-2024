@@ -21,7 +21,7 @@ namespace {
 			Module &M = *MF.getFunction().getParent();
 			GlobalVariable *GVar = M.getGlobalVariable("ic");
 
-			if (!gVar) {
+			if (!GVar) {
 				LLVMContext &context = M.getContext();
 				GVar = new GlobalVariable(M, IntegerType::get(context, 64), false,
 					GlobalValue::ExternalLinkage, nullptr, "ic");
