@@ -45,4 +45,5 @@ public:
 char X86BonyukPass::ID = 0;
 } // namespace
 
-static RegisterPass<X86BonyukPass> X("x86-bonyuk-pass", "X86 Bonyuk Pass", false, false);
+static RegisterPass<X86BonyukPass> X("x86-bonyuk-pass", "X86 Bonyuk Pass", 
+                                     false, false);
