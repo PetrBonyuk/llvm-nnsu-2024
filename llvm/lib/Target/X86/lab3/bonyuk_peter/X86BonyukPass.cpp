@@ -15,7 +15,7 @@ public:
   X86BonyukPass() : MachineFunctionPass(ID) {}
 
   bool runOnMachineFunction(MachineFunction &MF) override {
-    const TargetInstrInfo *TII= MF.getSubtarget().getInstrInfo();
+    const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
     DebugLoc debugLoc = MF.front().begin()->getDebugLoc();
     Module &M = *MF.getFunction().getParent();
     GlobalVariable *GVar = M.getGlobalVariable("ic");
@@ -33,13 +33,12 @@ public:
           ++count;
       }
 
-      BuildMI(MBB, MBB.getFirstTerminator(), debugLoc,
-              TII->get(X86::ADD64ri32))
+      BuildMI(MBB, MBB.getFirstTerminator(), debugLoc, TII->get(X86::ADD64ri32))
           .addGlobalAddress(GVar, 0, X86II::MO_NO_FLAG)
           .addImm(count);
     }
 
-	return true;
+    return true;
   }
 };
 
