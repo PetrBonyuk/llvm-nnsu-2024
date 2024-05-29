@@ -1,4 +1,22 @@
 # RUN: llc -mtriple x86_64-unknown-linux-gnu --load=%llvmshlibdir/X86BonyukPass%shlibext -run-pass=x86-bonyuk-pass  %s -o - | FileCheck %s
+
+# test.cpp
+#
+# unsigned long ic;
+#
+# int func(int a, int b, int c) {
+#     ic = 0;
+#
+#     // Function body
+#     int d = 0;
+#     for (int i = 0; i < a; i++) {
+#         if (d < b)
+#             d += c;
+#     }
+#     return d;
+# }
+
+
 --- |
   ; ModuleID = 'test.ll'
   source_filename = "test.cpp"
