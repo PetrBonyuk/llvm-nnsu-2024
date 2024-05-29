@@ -13,8 +13,6 @@ class X86BonyukPass : public MachineFunctionPass {
 public:
   static char ID;
   X86BonyukPass() : MachineFunctionPass(ID) {}
-  std::vector<bool> isDebugInstruction(MF.size(), false);
-  unsigned count = 0;
   bool runOnMachineFunction(MachineFunction &MF) override {
     const TargetInstrInfo *TII= MF.getSubtarget().getInstrInfo();
     DebugLoc debugLoc = MF.front().begin()->getDebugLoc();
@@ -27,13 +25,8 @@ public:
                                 GlobalValue::ExternalLinkage, nullptr, "ic");
     }
 
-    for (auto &MBB : MF) {
-       for (auto &MI : MBB) {
-         if (!isDebugInstruction[MI.getIndex()]) {
-           ++count;
-           isDebugInstruction[MI.getIndex()] = MI.isDebugInstr();
-         }
-       }
+	for (auto &MBB : MF) {
+      unsigned count = MBB.size();
 
       BuildMI(MBB, MBB.getFirstTerminator(), debugLoc,
               TII->get(X86::ADD64ri32))
