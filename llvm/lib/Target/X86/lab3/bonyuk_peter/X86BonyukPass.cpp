@@ -27,11 +27,7 @@ public:
     }
 
     for (auto &MBB : MF) {
-      unsigned count = 0;
-      for (auto &MI : MBB) {
-        if (!MI.isDebugInstr())
-          ++count;
-      }
+      unsigned count = MBB.size();
 
       BuildMI(MBB, MBB.getFirstTerminator(), debugLoc, TII->get(X86::ADD64ri32))
           .addGlobalAddress(GVar, 0, X86II::MO_NO_FLAG)
