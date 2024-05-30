@@ -7,7 +7,7 @@ using namespace mlir;
 
 namespace {
 class BonyukFusedMultiplyAddPass
-    : public PassWrapper<BonyukFusedMultiplyAddPass, OperationPass<FuncOp>> {
+    : public PassWrapper<BonyukFusedMultiplyAddPass, OperationPass<ModuleOp>> {
 public:
   StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
   StringRef getDescription() const final {
@@ -16,23 +16,27 @@ public:
   }
 
   void runOnOperation() override {
-    FuncOp func = getOperation();
-    func.walk(& {
-      Value AddLeft = AddOperation.getOperand(0);
-      Value AddRight = AddOperation.getOperand(1);
+	  ModuleOp module = getOperation();
+	  module.walk([&](FuncOp function) {
+		function.walk([&](LLVM::FAddOp AddOperation) {
+		Value AddLeft = AddOperation.getOperand(0);
+		Value AddRight = AddOperation.getOperand(1);
 
-      if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
-        HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
-      } else if (auto MultiplyRight = AddRight.getDefiningOp<LLVM::FMulOp>()) {
-        HandleMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
-      }
-    });
+		if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
+			HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
+		}
+		else if (auto MultiplyRight =
+			AddRight.getDefiningOp<LLVM::FMulOp>()) {
+			HandleMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
+		}
+	});
 
-    func.walk( {
-      if (MultiplyOperation.use_empty()) {
-        MultiplyOperation.erase();
-      }
-    });
+		function.walk([&](LLVM::FMulOp MultiplyOperation) { {
+		if (MultiplyOperation.use_empty()) {
+			MultiplyOperation.erase();
+		}
+	});
+		});
   }
 
 private:
@@ -49,7 +53,7 @@ private:
       MultiplyOperation.erase();
     }
 
-    if (AddOperation.use_empty()) {
+    if (FMAOperation.use_empty()) {
       AddOperation.erase();
     }
   }
@@ -62,7 +66,7 @@ MLIR_DEFINE_EXPLICIT_TYPE_ID(BonyukFusedMultiplyAddPass)
 PassPluginLibraryInfo getFusedMultiplyAddPassPluginInfo() {
   return {MLIR_PLUGIN_API_VERSION, "bonyuk_fused_multiply_add",
           LLVM_VERSION_STRING,
-           { PassRegistration<BonyukFusedMultiplyAddPass>(); }};
+          []() { PassRegistration<BonyukFusedMultiplyAddPass>(); }};
 }
 
 extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo mlirGetPassPluginInfo() {
