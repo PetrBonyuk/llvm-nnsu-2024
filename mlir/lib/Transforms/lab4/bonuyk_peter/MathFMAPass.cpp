@@ -7,56 +7,52 @@ using namespace mlir;
 
 namespace {
 class BonyukFusedMultiplyAddPass
-    : public PassWrapper<BonyukFusedMultiplyAddPass, OperationPass<ModuleOp>> {
+: public PassWrapper<BonyukFusedMultiplyAddPass, FuncOp> 
+{
 public:
-  StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
-  StringRef getDescription() const final {
-    return "This Pass combines the operations of addition and multiplication "
-           "into one";
-  }
+    StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
+    StringRef getDescription() const final {
+        return "This Pass combines the operations of addition and multiplication into one";
+    }
 
-  void runOnOperation() override {
-	  ModuleOp module = getOperation();
-	  module.walk([&](FuncOp function) {
-		function.walk([&](LLVM::FAddOp AddOperation) {
-		Value AddLeft = AddOperation.getOperand(0);
-		Value AddRight = AddOperation.getOperand(1);
+    void runOnOperation() override {
+        FuncOp func = getOperation();
+        func.walk([&](LLVM::FAddOp AddOperation) {
+            Value AddLeft = AddOperation.getOperand(0);
+            Value AddRight = AddOperation.getOperand(1);
 
-		if (auto MultiplyLeft = AddLeft.getDefiningOp<LLVM::FMulOp>()) {
-			HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
-		}
-		else if (auto MultiplyRight =
-			AddRight.getDefiningOp<LLVM::FMulOp>()) {
-			HandleMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
-		}
-	});
+            if (auto MultiplyLeft = dyn_cast_or_null<LLVM::FMulOp>(AddLeft.getDefiningOp())) {
+                HandleMultiplyOperation(AddOperation, MultiplyLeft, AddRight);
+            } else if (auto MultiplyRight = dyn_cast_or_null<LLVM::FMulOp>(AddRight.getDefiningOp())) {
+                HandleMultiplyOperation(AddOperation, MultiplyRight, AddLeft);
+            }
+        });
 
-		function.walk([&](LLVM::FMulOp MultiplyOperation) { {
-		if (MultiplyOperation.use_empty()) {
-			MultiplyOperation.erase();
-		}
-	});
-		});
-  }
+        func.walk([](LLVM::FMulOp MultiplyOperation) {
+            if (MultiplyOperation.use_empty()) {
+                MultiplyOperation.erase();
+            }
+        });
+    }
 
 private:
-  void HandleMultiplyOperation(LLVM::FAddOp &AddOperation,
-                               LLVM::FMulOp &MultiplyOperation,
-                               Value &Operand) {
-    OpBuilder builder(AddOperation);
-    Value FMAOperation = builder.create<LLVM::FMAOp>(
-        AddOperation.getLoc(), MultiplyOperation.getOperand(0),
-        MultiplyOperation.getOperand(1), Operand);
-    AddOperation.replaceAllUsesWith(FMAOperation);
+    void HandleMultiplyOperation(LLVM::FAddOp &AddOperation,
+                                  LLVM::FMulOp &MultiplyOperation,
+                                  Value &Operand) {
+        OpBuilder builder(AddOperation);
+        Value FMAOperation = builder.create<LLVM::FMAOp>(
+            AddOperation.getLoc(), MultiplyOperation.getOperand(0),
+            MultiplyOperation.getOperand(1), Operand);
+        AddOperation.replaceAllUsesWith(FMAOperation);
 
-    if (MultiplyOperation.use_empty()) {
-      MultiplyOperation.erase();
-    }
+        if (MultiplyOperation.use_empty()) {
+            MultiplyOperation.erase();
+        }
 
-    if (FMAOperation.use_empty()) {
-      AddOperation.erase();
+        if (AddOperation.use_empty()) {
+            AddOperation.erase();
+        }
     }
-  }
 };
 } // namespace
 
