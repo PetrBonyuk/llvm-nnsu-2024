@@ -1,4 +1,4 @@
-// RUN: mlir-opt -load-pass-plugin=%mlir_lib_dir/BonyukFusedMultiplyAddPass%shlibext --pass-pipeline="builtin.module(bonyuk_fused_multiply_add)" %s | FileCheck %s
+// RUN: mlir-opt -load-pass-plugin=%mlir_lib_dir/BonyukFusedMultiplyAddPass%shlibext --pass-pipeline="builtin.module(llvm.func(bonyuk_fused_multiply_add))" %s | FileCheck %s
 
 // void functionone(double a, double b, double c){
 //     double d = a * b + c;
