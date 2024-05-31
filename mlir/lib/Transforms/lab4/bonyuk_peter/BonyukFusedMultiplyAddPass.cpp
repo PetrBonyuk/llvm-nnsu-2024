@@ -7,7 +7,8 @@ using namespace mlir;
 
 namespace {
 class BonyukFusedMultiplyAddPass
-    : public PassWrapper<BonyukFusedMultiplyAddPass, OperationPass<LLVM::LLVMFuncOp>> {
+    : public PassWrapper<BonyukFusedMultiplyAddPass, 
+                         OperationPass<LLVM::LLVMFuncOp>> {
 public:
   StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
   StringRef getDescription() const final {
