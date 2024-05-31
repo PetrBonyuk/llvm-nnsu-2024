@@ -7,7 +7,7 @@ using namespace mlir;
 
 namespace {
 class BonyukFusedMultiplyAddPass
-    : public PassWrapper<BonyukFusedMultiplyAddPass, 
+    : public PassWrapper<BonyukFusedMultiplyAddPass,
                          OperationPass<LLVM::LLVMFuncOp>> {
 public:
   StringRef getArgument() const final { return "bonyuk_fused_multiply_add"; }
@@ -18,7 +18,7 @@ public:
 
   void runOnOperation() override {
     LLVM::LLVMFuncOp func = getOperation();
-	func.walk([&](LLVM::FAddOp AddOperation) {
+    func.walk([&](LLVM::FAddOp AddOperation) {
       Value AddLeft = AddOperation.getOperand(0);
       Value AddRight = AddOperation.getOperand(1);
 
@@ -29,7 +29,7 @@ public:
       }
     });
 
-	func.walk([](LLVM::FMulOp MultiplyOperation) {
+    func.walk([](LLVM::FMulOp MultiplyOperation) {
       if (MultiplyOperation.use_empty()) {
         MultiplyOperation.erase();
       }
